@@ -1,0 +1,16 @@
+{
+  "name": "disbursement-system-js",
+  "version": "1.0.0",
+  "private": true,
+  "description": "نظام إدارة الصرف والمخزون - نسخة ويب (React + Express)",
+  "scripts": {
+    "setup": "npm install --prefix server && npm install --prefix client",
+    "dev": "concurrently -n server,client -c blue,green \"npm run dev --prefix server\" \"npm run dev --prefix client\"",
+    "dev:server": "npm run dev --prefix server",
+    "dev:client": "npm run dev --prefix client",
+    "start": "npm start --prefix server"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.4"
+  }
+}
