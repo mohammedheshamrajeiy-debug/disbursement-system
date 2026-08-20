@@ -136,9 +136,9 @@
     "savedRequestsWithType": "الطلبات المحفوظة - {{type}}",
     "contactsListTitle": "قائمة ال{{type}}ات",
     "name": "الاسم",
-    "phone": "الهاتف",
-    "region": "المنطقة",
-    "receiver": "المستلم",
+    "phone": " رقم الهاتف",
+    "region": "المنطقة/المحافظة",
+    "receiver": "اسم المستلم",
     "type": "النوع",
     "choose": "اختيار",
     "historyTitle": "سجل {{name}}",
@@ -466,6 +466,9 @@
     "receiveImage": "صورة الاستلام",
     "saveDelivery": "حفظ بيانات التوصيل"
   },
+  "summary": {
+    "requestLabel": "{{reqId}} - {{name}} ({{count}} عنصر)"
+  },
   "summarySection": {
     "title": "معلومات الطلب",
     "requestNumber": "رقم الطلب",
@@ -478,7 +481,8 @@
     "notDeducted": "لم يُخصم",
     "selectRequestHint": "اختر طلباً لعرض معلوماته",
     "importFromCarton": "استيراد من الكرتونة",
-    "importFromStorage": "استيراد من المخزن"
+    "importFromStorage": "استيراد من المخزن",
+    "importHeader": "معلومات الأجهزة"
   },
   "actionsSection": {
     "title": "الأجهزة والإجراءات",

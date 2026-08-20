@@ -12,10 +12,16 @@ export function labelId(label) {
 
 function labelName(label) {
   const text = String(label);
+  console.log('labelName: Processing label:', label, 'type:', typeof label);
   const parts = text.split(" - ");
-  if (parts.length < 2) return "";
+  if (parts.length < 2) {
+    console.log('labelName: insufficient parts for label:', label, 'parts:', parts);
+    return "";
+  }
   const namePart = parts.slice(1).join(" - ");
-  return namePart.replace(/\s*\([^)]*\)\s*$/, "").trim();
+  const cleaned = namePart.replace(/\s*\([^)]*\)\s*$/, "").trim();
+  console.log('labelName: input:', label, 'parts:', parts, 'namePart:', namePart, 'cleaned:', cleaned);
+  return cleaned;
 }
 
 export default function RequestPanel({
@@ -37,54 +43,96 @@ export default function RequestPanel({
   const [loading, setLoading] = useState(false);
 
   const names = useMemo(() => {
+    console.log('names useMemo: processing labels:', labels);
     const set = new Set();
+    let validCount = 0;
+    let invalidCount = 0;
     for (const label of labels) {
       const name = labelName(label);
-      if (name) set.add(name);
+      console.log('names useMemo: label:', label, '-> extracted name:', name);
+      if (name !== "" && name !== null) {
+        set.add(name);
+        validCount++;
+      } else {
+        invalidCount++;
+      }
     }
-    return sortArabicFirst([...set]);
+    console.log('names useMemo: valid names:', validCount, 'invalid/empty:', invalidCount, 'final set:', [...set]);
+    const sorted = sortArabicFirst([...set]);
+    console.log('names useMemo: after sortArabicFirst:', sorted);
+    return sorted;
   }, [labels]);
 
   const filteredLabels = useMemo(() => {
     const q = selectedName.trim().toLowerCase();
     if (!q) return labels;
-    return labels.filter((label) => labelName(label).toLowerCase().includes(q));
+    const filtered = labels.filter((label) => labelName(label).toLowerCase().includes(q));
+    console.log('filteredLabels useMemo: query:', q, 'input labels count:', labels.length, 'filtered count:', filtered.length);
+    return filtered;
   }, [labels, selectedName]);
 
   async function loadLabels() {
+    console.log('loadLabels: called with source:', source, 'stage:', stage, 'completed:', completed);
     const q = new URLSearchParams({ source });
     if (stage) q.set("stage", stage);
     if (completed) q.set("completed", "1");
-    const data = await api(`/requests/labels?${q}`);
-    setLabels(data.labels || []);
-    setSelected("");
-    setSelectedName("");
-    setRequest(null);
+    const queryString = q.toString();
+    const url = `/requests/labels?${queryString}`;
+    console.log('Fetching labels with params:', { source, stage, completed }, 'URL:', url);
+    try {
+      const data = await api(url);
+      console.log('Labels API full response:', data);
+      console.log('Labels API response labels array:', data.labels);
+      console.log('Labels API response labels count:', data.labels ? data.labels.length : 0);
+
+      // Log each label individually for detailed inspection
+      if (data.labels && Array.isArray(data.labels)) {
+        data.labels.forEach((label, index) => {
+          console.log(`Labels API label[${index}]:`, label, 'type:', typeof label);
+        });
+      }
+
+      setLabels(data.labels || []);
+      setSelected("");
+      setSelectedName("");
+      setRequest(null);
+    } catch (error) {
+      console.error('Error fetching labels:', error);
+      setLabels([]);
+    }
   }
 
   useEffect(() => {
+    console.log('RequestPanel useEffect triggered: source changed to:', source, 'stage:', stage, 'completed:', completed);
     loadLabels().catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [source, stage, completed]);
 
   async function select(label) {
+    console.log('select: called with label:', label);
     const id = labelId(label);
+    console.log('select: labelId result:', id);
     setSelected(label);
     setLoading(true);
     try {
       const data = await api(`/requests/${encodeURIComponent(id)}`);
+      console.log('select: API response for request:', data);
       setRequest({ ...data.req, display: data.display });
       if (onSelect) onSelect(data);
+    } catch (error) {
+      console.error('Error selecting request:', error);
     } finally {
       setLoading(false);
     }
   }
 
   useEffect(() => {
+    console.log('RequestPanel highlight useEffect: highlight:', highlight, 'labels length:', labels.length);
     if (!highlight || !labels.length) return;
     const hit = labels.find(
       (l) => labelId(l) === String(highlight).split(" - ")[0].trim(),
     );
+    console.log('RequestPanel highlight useEffect: found hit:', hit);
     if (hit) select(hit);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [highlight, labels.length]);

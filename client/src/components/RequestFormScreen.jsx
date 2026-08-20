@@ -454,11 +454,7 @@ function RequestInfoSection({
         <div className="field">
           <label>{t("requestForm.type")}</label>
           {isCustomer ? (
-            <select value={btype} onChange={(e) => setBtype(e.target.value)}>
-              <option value="عميل">{t("requestForm.btypeCustomer")}</option>
-              <option value="عميل مخلص">{t("requestForm.btypeLoyalCustomer")}</option>
-              <option value="عميل فردي">{t("requestForm.btypeIndividualCustomer")}</option>
-            </select>
+              <input value="عميل" readOnly />
           ) : (
             <input value="وكيل" readOnly />
           )}

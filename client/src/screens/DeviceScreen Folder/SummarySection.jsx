@@ -83,6 +83,9 @@ export default function SummarySection({
           sections={["header", "notes", "invoice", "devices"]}
         />
       ) : null}
+      <div className="field">
+        <label>{t("summarySection.importHeader")}</label>
+      </div>
       <div className="form-row" style={{ marginTop: 14 }}>
         <button
           className={`btn ${importPanel === "carton" ? "btn-primary" : ""}`}

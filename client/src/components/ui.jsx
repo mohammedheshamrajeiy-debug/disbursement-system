@@ -98,7 +98,7 @@ export function ToastProvider({ children }) {
   function notify(message, type = "info") {
     const id = Date.now() + Math.random();
     setToasts((t) => [...t, { id, message, type }]);
-    setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 3500);
+    setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 8000);
   }
 
   return (

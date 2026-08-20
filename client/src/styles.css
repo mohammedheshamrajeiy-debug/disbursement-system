@@ -356,8 +356,13 @@ table.grid tr.selected td {
   direction: ltr;
 }
 
-.request-form-content,
-.request-form-sidebar {
+[dir="ltr"] .request-form-content,
+[dir="ltr"] .request-form-sidebar {
+  direction: ltr;
+}
+
+[dir="rtl"] .request-form-content,
+[dir="rtl"] .request-form-sidebar {
   direction: rtl;
 }
 

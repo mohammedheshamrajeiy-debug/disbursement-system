@@ -1,0 +1,6 @@
+
+> disbursement-server@1.0.0 dev
+> node src/index.js
+
+[server] نظام إدارة الصرف - الخادم يعمل على http://localhost:4000
+[server] مسار البيانات: C:\Users\moham\Downloads\JS_version2.1\server\data

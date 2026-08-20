@@ -136,9 +136,9 @@
     "savedRequestsWithType": "Saved requests - {{type}}",
     "contactsListTitle": "{{type}} list",
     "name": "Name",
-    "phone": "Phone",
-    "region": "Region",
-    "receiver": "Receiver",
+    "phone": "Phone Number",
+    "region": "Region/Province",
+    "receiver": "Receiver Name",
     "type": "Type",
     "choose": "Choose",
     "historyTitle": "History of {{name}}",
@@ -422,6 +422,9 @@
     "receiveImage": "Receive image",
     "saveDelivery": "Save delivery data"
   },
+  "summary": {
+    "requestLabel": "{{reqId}} - {{name}} ({{count}} item)"
+  },
   "summarySection": {
     "title": "Request information",
     "requestNumber": "Request number",
@@ -434,7 +437,8 @@
     "notDeducted": "Not deducted",
     "selectRequestHint": "Select a request to view its details",
     "importFromCarton": "Import from carton",
-    "importFromStorage": "Import from storage"
+    "importFromStorage": "Import from storage",
+    "importHeader": "Device Information"
   },
   "actionsSection": {
     "title": "Devices & actions",
