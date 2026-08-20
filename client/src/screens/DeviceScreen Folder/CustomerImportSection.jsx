@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Card } from "../../components/ui.jsx";
 import { DeviceBrowseTable } from "./DeviceTables.jsx";
 import { exportCsv } from "../../utils.js";
@@ -13,23 +14,24 @@ export default function CustomerImportSection({
   invoiceNumber,
   toggle,
 }) {
+  const { t } = useTranslation();
   const rows = filteredCust.map((r) => ({
     ...r,
     customer_name: customerName,
     invoice_number: invoiceNumber,
   }));
   return (
-    <Card title="الطريقة 2 — الاستيراد من مخزن خدمة العملاء (شرائح/ريسيفرات)">
+    <Card title={t("customerImport.title")}>
       <div className="form-row">
         <div className="field">
-          <label>بحث (شريحة / ريسيفر / بطاقة)</label>
+          <label>{t("customerImport.searchLabel")}</label>
           <input
             value={custQuery}
             onChange={(e) => setCustQuery(e.target.value)}
           />
         </div>
         <button className="btn btn-primary" onClick={addCustSelected}>
-          إضافة المحدد ({custSel.size})
+          {t("customerImport.addSelectedCount", { count: custSel.size })}
         </button>
       </div>
       <DeviceBrowseTable
@@ -40,8 +42,8 @@ export default function CustomerImportSection({
           exportCsv(
             "customer_storage.csv",
             [
-              "اسم العميل",
-              "رقم الفاتورة",
+              t("customerImport.customerName"),
+              t("customerImport.invoiceNumber"),
               "ID",
               "CartonSerialNo",
               "DecoderSerialNo",

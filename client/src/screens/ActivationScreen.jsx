@@ -1,4 +1,5 @@
 ﻿import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { api } from "../api.js";
 import { useNotify } from "../components/ui.jsx";
 import RequestPanel from "../components/RequestPanel.jsx";
@@ -7,6 +8,7 @@ import { useNav } from "../App.jsx";
 
 export default function ActivationScreen() {
   const notify = useNotify();
+  const { t } = useTranslation();
   const { selectedRequest, setSelectedRequest } = useNav();
 
   const [reqId, setReqId] = useState("");
@@ -21,10 +23,10 @@ export default function ActivationScreen() {
   const [sortAsc, setSortAsc] = useState(true);
 
   const drawerItems = [
-    { key: "status", label: "حالة وسجل الطلب" },
-    { key: "saved", label: "الطلبات المحفوظة" },
-    { key: "return", label: "المرتجع" },
-    { key: "defect", label: "العيب المصنعي" },
+    { key: "status", label: t("activationScreen.statusAndLog") },
+    { key: "saved", label: t("activationScreen.savedRequests") },
+    { key: "return", label: t("activationScreen.returns") },
+    { key: "defect", label: t("activationScreen.defect") },
   ];
 
   async function loadRequest(id) {
@@ -55,7 +57,7 @@ export default function ActivationScreen() {
   async function activate() {
     const target = serial.trim() || selectedRow();
     if (!target)
-      return notify("أدخل رقم الجهاز أو حدد صفاً من الجدول", "error");
+      return notify(t("activationScreen.enterSerialOrSelectRow"), "error");
 
     const data = await api(
       `/requests/${encodeURIComponent(reqId)}/activation`,
@@ -65,15 +67,15 @@ export default function ActivationScreen() {
       },
     );
 
-    notify(`تم تحميل ${target}`);
+    notify(t("activationScreen.loadedSerial", { target }));
     setRequest({ ...data.req, display: null });
     setSerial("");
     setNotes("");
   }
 
   async function activateAll() {
-    if (!reqId) return notify("اختر طلباً أولاً", "error");
-    if (!window.confirm("تحميل كل أجهزة الطلب؟")) return;
+    if (!reqId) return notify(t("activationScreen.selectRequestFirst"), "error");
+    if (!window.confirm(t("activationScreen.confirmActivateAll"))) return;
 
     const data = await api(
       `/requests/${encodeURIComponent(reqId)}/activation-all`,
@@ -83,7 +85,7 @@ export default function ActivationScreen() {
       },
     );
 
-    notify(`تم تحميل ${data.count} جهاز`);
+    notify(t("activationScreen.loadedCount", { count: data.count }));
     setRequest({ ...data.req, display: null });
   }
 
@@ -154,7 +156,7 @@ export default function ActivationScreen() {
 
   const columns = [
     {
-      title: "الرقم التسلسلي",
+      title: t("activationScreen.serialNo"),
       render: (r) => (
         <button
           className="btn btn-sm btn-ghost"
@@ -167,20 +169,24 @@ export default function ActivationScreen() {
         </button>
       ),
     },
-    { title: "الكرتونة", key: "carton" },
-    { title: "الشريحة", key: "chip" },
-    { title: "الموديل", key: "model" },
+    { title: t("activationScreen.carton"), key: "carton" },
+    { title: t("activationScreen.chip"), key: "chip" },
+    { title: t("activationScreen.model"), key: "model" },
     {
-      title: "الحالة",
+      title: t("activationScreen.status"),
       render: (r) =>
         r.active ? (
-          <span className="status-chip status-activated">محمل</span>
+          <span className="status-chip status-activated">
+            {t("activationScreen.loaded")}
+          </span>
         ) : (
-          <span className="status-chip status-activation">غير محمل</span>
+          <span className="status-chip status-activation">
+            {t("activationScreen.notLoaded")}
+          </span>
         ),
     },
     {
-      title: "تاريخ التحميل",
+      title: t("activationScreen.activationDate"),
       render: (r) => (r.active ? r.active.date : "—"),
     },
   ];
@@ -197,7 +203,7 @@ export default function ActivationScreen() {
       <RequestPanel
         source="all"
         stage="activation"
-        title="طلبات بانتظار التحميل"
+        title={t("activationScreen.pendingActivationRequests")}
         sections={["header", "notes", "invoice", "shipment", "devices"]}
         hideFinancial
         highlight={selectedRequest?.req_id}

@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Card } from "../../components/ui.jsx";
 import { DeviceEditTable, CARTON_DEV_COLS } from "./DeviceTables.jsx";
 import { exportCsv } from "../../utils.js";
@@ -19,45 +20,46 @@ export default function CartonImportSection({
   invoiceNumber,
   toggle,
 }) {
+  const { t } = useTranslation();
   const rows = cartonTable.map((r) => ({
     ...r,
     customer_name: customerName,
     invoice_number: invoiceNumber,
   }));
   return (
-    <Card title="الطريقة 1 — الاستيراد من الكرتونة">
+    <Card title={t("cartonImport.title")}>
       <div className="form-row">
         <div className="field">
-          <label>رقم الكرتونة</label>
+          <label>{t("cartonImport.cartonNumber")}</label>
           <input
             value={cartonNo}
             onChange={(e) => setCartonNo(e.target.value)}
           />
         </div>
         <button className="btn" onClick={fetchCarton}>
-          سحب الكرتونة
+          {t("cartonImport.fetchCarton")}
         </button>
         <button className="btn btn-danger" onClick={deleteCarton}>
-          حذف الكرتون
+          {t("cartonImport.deleteCarton")}
         </button>
       </div>
       <div className="form-row">
         <div className="field">
-          <label>SKU (اختياري)</label>
+          <label>{t("cartonImport.skuOptional")}</label>
           <input
             value={cartonSku}
             onChange={(e) => setCartonSku(e.target.value)}
           />
         </div>
         <div className="field">
-          <label>المدة (اختياري)</label>
+          <label>{t("cartonImport.durationOptional")}</label>
           <input
             value={cartonDuration}
             onChange={(e) => setCartonDuration(e.target.value)}
           />
         </div>
       </div>
-      <h4 style={{ marginTop: 12 }}>أجهزة الكرتونات المضافة</h4>
+      <h4 style={{ marginTop: 12 }}>{t("cartonImport.addedCartonDevices")}</h4>
       <DeviceEditTable
         rows={rows}
         sel={cartonSel}
@@ -72,15 +74,15 @@ export default function CartonImportSection({
           exportCsv(
             "carton_devices.csv",
             [
-              "اسم العميل",
-              "رقم الفاتورة",
+              t("cartonImport.customerName"),
+              t("cartonImport.invoiceNumber"),
               "ID",
               "CartonSerialNo",
               "DecoderSerialNo",
               "ChipSerialNo",
               "CardSerialNo",
               "SKU",
-              "المدة",
+              t("cartonImport.duration"),
             ],
             rows.map((r) => [
               r.customer_name,

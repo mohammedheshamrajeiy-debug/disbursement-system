@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Card } from "../../components/ui.jsx";
 
 export default function DeliverySection({
@@ -21,8 +22,9 @@ export default function DeliverySection({
   saveDelivery,
   setView,
 }) {
+  const { t } = useTranslation();
   return (
-    <Card id="delivery-card" title="بيانات التوصيل">
+    <Card id="delivery-card" title={t("deliverySection.title")}>
       <div className="radio-row">
         <label>
           <input
@@ -31,7 +33,7 @@ export default function DeliverySection({
             checked={method === "shipment"}
             onChange={() => setMethod("shipment")}
           />
-          شحن
+          {t("deliverySection.shipment")}
         </label>
         <label>
           <input
@@ -40,35 +42,35 @@ export default function DeliverySection({
             checked={method === "hand"}
             onChange={() => setMethod("hand")}
           />
-          استلام يدوي
+          {t("status.hand")}
         </label>
       </div>
       {method === "shipment" ? (
         <div className="form-grid" style={{ marginTop: 12 }}>
           <div className="field">
-            <label>رقم البوليصة</label>
+            <label>{t("deliverySection.bolNumber")}</label>
             <input
               value={bolNumber}
               onChange={(e) => setBolNumber(e.target.value)}
             />
           </div>
           <div className="field">
-            <label>شركة النقل</label>
+            <label>{t("deliverySection.carrier")}</label>
             <input
               value={carrier}
               onChange={(e) => setCarrier(e.target.value)}
             />
           </div>
           <div className="field">
-            <label>تاريخ الشحن</label>
+            <label>{t("deliverySection.shipDate")}</label>
             <input
               value={shipDate}
               onChange={(e) => setShipDate(e.target.value)}
-              placeholder="يوم/شهر/سنة"
+              placeholder={t("deliverySection.datePlaceholder")}
             />
           </div>
           <div className="field">
-            <label>صورة البوليصة</label>
+            <label>{t("deliverySection.bolImage")}</label>
             <input
               type="file"
               accept="image/*,.pdf"
@@ -87,29 +89,29 @@ export default function DeliverySection({
       ) : (
         <div className="form-grid" style={{ marginTop: 12 }}>
           <div className="field">
-            <label>تاريخ الاستلام</label>
+            <label>{t("deliverySection.receiveDate")}</label>
             <input
               value={handDate}
               onChange={(e) => setHandDate(e.target.value)}
-              placeholder="يوم/شهر/سنة"
+              placeholder={t("deliverySection.datePlaceholder")}
             />
           </div>
           <div className="field">
-            <label>اسم المستلم</label>
+            <label>{t("deliverySection.receiverName")}</label>
             <input
               value={handReceiver}
               onChange={(e) => setHandReceiver(e.target.value)}
             />
           </div>
           <div className="field">
-            <label>ملاحظات</label>
+            <label>{t("deliverySection.notes")}</label>
             <input
               value={handNotes}
               onChange={(e) => setHandNotes(e.target.value)}
             />
           </div>
           <div className="field">
-            <label>صورة الاستلام</label>
+            <label>{t("deliverySection.receiveImage")}</label>
             <input
               type="file"
               accept="image/*,.pdf"
@@ -128,7 +130,7 @@ export default function DeliverySection({
       )}
       <div className="form-row" style={{ marginTop: 14 }}>
         <button className="btn btn-primary" onClick={saveDelivery}>
-          حفظ بيانات التوصيل
+          {t("deliverySection.saveDelivery")}
         </button>
       </div>
     </Card>

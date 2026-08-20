@@ -208,7 +208,6 @@ body {
 }
 .btn-ghost {
   border-color: transparent;
-  background: transparent;
 }
 .btn-sm {
   padding: 4px 10px;
@@ -284,7 +283,7 @@ table.grid th {
   background: #eef2f4;
   color: var(--primary-dark);
   padding: 8px 10px;
-  text-align: right;
+  text-align: start;
   font-weight: 700;
   border-bottom: 2px solid var(--border);
   white-space: nowrap;
@@ -370,7 +369,7 @@ table.grid tr.selected td {
 
 .accordion-btn {
   width: 100%;
-  text-align: right;
+  text-align: start;
   background: #fff;
   border: 1px solid var(--border);
   border-radius: 12px;
@@ -539,7 +538,7 @@ table.grid tr.selected td {
 .toast-wrap {
   position: fixed;
   top: 20px;
-  left: 50%;
+  inset-inline-start: 50%;
   transform: translateX(-50%);
   z-index: 300;
   display: flex;

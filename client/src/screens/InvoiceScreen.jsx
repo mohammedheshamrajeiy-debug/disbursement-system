@@ -4,14 +4,15 @@ import { useNotify } from "../components/ui.jsx";
 import RequestPanel from "../components/RequestPanel.jsx";
 import ImagesModal from "../components/ImagesModal.jsx";
 import { useNav } from "../App.jsx";
+import { useTranslation } from "react-i18next";
 import InvoiceFormSection from "./InvoiceFormSection.jsx";
-import InvoiceAttachmentsSection from "./InvoiceAttachmentsSection.jsx";
 import DetailSection from "./DetailSection.jsx";
 import ReturnsPanel from "../components/ReturnsPanel.jsx";
 import DefectsPanel from "../components/DefectsPanel.jsx";
 
 export default function InvoiceScreen() {
   const notify = useNotify();
+  const { t } = useTranslation();
   const { selectedRequest, setSelectedRequest, navigate } = useNav();
 
   const [current, setCurrent] = useState(null);
@@ -26,10 +27,10 @@ export default function InvoiceScreen() {
   const [activeSection, setActiveSection] = useState("invoice");
 
   const drawerItems = [
-    { key: "invoice", label: "الفاتورة" },
-    { key: "saved", label: "البيانات المحفوظة" },
-    { key: "return", label: "المرتجع" },
-    { key: "defect", label: "العيب المصنعي" },
+    { key: "invoice", label: "invoiceScreen.invoice" },
+    { key: "saved", label: "invoiceScreen.savedData" },
+    { key: "return", label: "invoiceScreen.return" },
+    { key: "defect", label: "invoiceScreen.defect" },
   ];
 
   useEffect(() => {
@@ -74,9 +75,9 @@ export default function InvoiceScreen() {
   }
 
   async function save() {
-    if (!reqId) return notify("اختر طلباً أولاً", "error");
+    if (!reqId) return notify(t("invoiceScreen.selectRequestFirst"), "error");
     if (!invNumber.trim() && !invoiceImage)
-      return notify("أدخل رقم الفاتورة أو أرفق صورة الفاتورة", "error");
+      return notify(t("invoiceScreen.enterInvoiceNumberOrImage"), "error");
 
     const data = await api(`/requests/${encodeURIComponent(reqId)}/invoice`, {
       method: "POST",
@@ -89,7 +90,7 @@ export default function InvoiceScreen() {
       },
     });
 
-    notify(data.message || "تم حفظ الفاتورة");
+    notify(data.message || t("invoiceScreen.invoiceSaved"));
     setCurrent(data.req);
     setSelectedRequest({ req_id: reqId, req: data.req });
   }
@@ -103,16 +104,16 @@ export default function InvoiceScreen() {
 
   function renderSection() {
     if (activeSection === "return") {
-      return <ReturnsPanel title="المرتجعات" />;
+      return <ReturnsPanel title={t("invoiceScreen.returns")} />;
     }
     if (activeSection === "defect") {
-      return <DefectsPanel title="العيب المصنعي" />;
+      return <DefectsPanel title={t("invoiceScreen.defect")} />;
     }
     if (activeSection === "saved") {
       return (
         <DetailSection
           source="all"
-          title="البيانات المحفوظة"
+          title={t("invoiceScreen.savedData")}
           sections={[
             "header",
             "notes",
@@ -129,31 +130,25 @@ export default function InvoiceScreen() {
     }
 
     return (
-      <>
-        <InvoiceFormSection
-          current={current}
-          reqId={reqId}
-          setReqId={setReqId}
-          invNumber={invNumber}
-          setInvNumber={setInvNumber}
-          invDate={invDate}
-          setInvDate={setInvDate}
-          invAmount={invAmount}
-          setInvAmount={setInvAmount}
-          saleOrder={saleOrder}
-          setSaleOrder={setSaleOrder}
-          invoiceImage={invoiceImage}
-          accountantImage={accountantImage}
-          save={save}
-          navigate={navigate}
-        />
-        <InvoiceAttachmentsSection
-          invoiceImage={invoiceImage}
-          accountantImage={accountantImage}
-          upload={upload}
-          setView={setView}
-        />
-      </>
+      <InvoiceFormSection
+        current={current}
+        reqId={reqId}
+        setReqId={setReqId}
+        invNumber={invNumber}
+        setInvNumber={setInvNumber}
+        invDate={invDate}
+        setInvDate={setInvDate}
+        invAmount={invAmount}
+        setInvAmount={setInvAmount}
+        saleOrder={saleOrder}
+        setSaleOrder={setSaleOrder}
+        invoiceImage={invoiceImage}
+        accountantImage={accountantImage}
+        upload={upload}
+        setView={setView}
+        save={save}
+        navigate={navigate}
+      />
     );
   }
 
@@ -162,7 +157,7 @@ export default function InvoiceScreen() {
       <RequestPanel
         source="all"
         stage="invoice"
-        title="طلبات بانتظار الفاتورة"
+        title={t("invoiceScreen.requestsAwaitingInvoice")}
         sections={["header", "notes"]}
         highlight={selectedRequest?.req_id}
         onSelect={(r) => {
@@ -186,7 +181,7 @@ export default function InvoiceScreen() {
               className={`accordion-btn ${activeSection === item.key ? "active" : ""}`}
               onClick={() => setActiveSection(item.key)}
             >
-              {item.label}
+              {t(item.label)}
             </button>
           ))}
         </div>
@@ -194,7 +189,7 @@ export default function InvoiceScreen() {
 
       {view ? (
         <ImagesModal
-          title="الفاتورة"
+          title={t("invoiceScreen.invoice")}
           urls={view}
           onClose={() => setView(null)}
         />

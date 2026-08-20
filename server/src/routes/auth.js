@@ -7,7 +7,7 @@ export function authRequired(req, res, next) {
   if (!token && req.query && req.query.token) token = String(req.query.token);
   const session = token ? getSession(token) : null;
   if (!session) {
-    return res.status(401).json({ error: 'غير مصرح به - يجب تسجيل الدخول' });
+    return res.status(401).json({ error: req.t('errors.unauthorized') });
   }
   req.session = session;
   req.token = token;
@@ -23,7 +23,7 @@ export function requireTab(tabKey) {
   return (req, res, next) => {
     const tabs = (req.session && req.session.tabs) || [];
     if (!tabs.includes(tabKey)) {
-      return res.status(403).json({ error: 'ليس لديك صلاحية القيام بهذا الإجراء' });
+      return res.status(403).json({ error: req.t('errors.noPermission') });
     }
     next();
   };
@@ -36,7 +36,7 @@ export function authRoutes(dm) {
     const { username, password } = req.body || {};
     const user = dm.validateLogin(username, password);
     if (!user) {
-      return res.status(401).json({ error: 'اسم المستخدم أو كلمة المرور غير صحيحة' });
+      return res.status(401).json({ error: req.t('errors.loginFailed') });
     }
     const token = createSession(user);
     res.json({ token, user });
@@ -44,7 +44,7 @@ export function authRoutes(dm) {
 
   router.get('/me', authRequired, (req, res) => {
     const user = dm.users[req.session.username];
-    if (!user) return res.status(401).json({ error: 'المستخدم غير موجود' });
+    if (!user) return res.status(401).json({ error: req.t('errors.userNotFound') });
     res.json({ user: { username: req.session.username, ...user } });
   });
 

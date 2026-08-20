@@ -14,6 +14,7 @@ import { financialRoutes } from './routes/financial.js';
 import { logRoutes } from './routes/log.js';
 import { returnRoutes } from './routes/returns.js';
 import { defectRoutes } from './routes/defects.js';
+import { middleware as i18nMiddleware } from './i18n.js';
 
 const PORT = process.env.PORT || 4000;
 
@@ -22,6 +23,7 @@ const app = express();
 
 app.use(cors());
 app.use(express.json({ limit: '30mb' }));
+app.use(i18nMiddleware);
 
 ensureDir(UPLOADS_DIR);
 app.use(PUBLIC_UPLOADS, express.static(UPLOADS_DIR));
@@ -65,7 +67,7 @@ if (process.env.NODE_ENV === 'production') {
 
 app.use((err, req, res, next) => {
   console.error(err);
-  res.status(500).json({ error: err.message || 'خطأ في الخادم' });
+  res.status(500).json({ error: req.t(err.message || 'errors.internal') });
 });
 
 app.listen(PORT, () => {

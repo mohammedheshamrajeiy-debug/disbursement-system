@@ -33,7 +33,7 @@ export function requestRoutes(dm) {
     const source = src(req.query.source, REQUEST_SOURCE_ALL);
     const list = dm.iterRequests(source).map(([rid, r]) => ({
       req_id: rid,
-      display: getRequestDisplayData(rid, dm.normalizeImages(r)),
+      display: getRequestDisplayData(rid, dm.normalizeImages(r), req.t),
       raw: dm.normalizeImages(r),
     }));
     res.json(list);
@@ -45,8 +45,8 @@ export function requestRoutes(dm) {
     const completed = req.query.completed === '1' || req.query.completed === 'true';
     res.json({
       labels: completed
-        ? reqService.listLabelsForEditing(stage, source)
-        : reqService.listLabelsForWorkflow(stage, source),
+        ? reqService.listLabelsForEditing(stage, source, req.t)
+        : reqService.listLabelsForWorkflow(stage, source, req.t),
     });
   });
 
@@ -95,20 +95,20 @@ export function requestRoutes(dm) {
       const found = dm.findRequest(reqId);
       res.json({ req_id: reqId, req: dm.normalizeImages(found[1]) });
     } catch (e) {
-      res.status(400).json({ error: e.message });
+      res.status(400).json({ error: req.t(e.message) });
     }
   });
 
   router.get('/:id', (req, res) => {
     const found = dm.findRequest(req.params.id);
-    if (!found) return res.status(404).json({ error: 'طلب الصرف غير موجود' });
+    if (!found) return res.status(404).json({ error: req.t('errors.requestNotFound') });
     const r = dm.normalizeImages(found[1]);
-    res.json({ req_id: req.params.id, req: r, display: getRequestDisplayData(req.params.id, r) });
+    res.json({ req_id: req.params.id, req: r, display: getRequestDisplayData(req.params.id, r, req.t) });
   });
 
   router.get('/:id/devices.xlsx', (req, res) => {
     const found = dm.findRequest(req.params.id);
-    if (!found) return res.status(404).json({ error: 'طلب الصرف غير موجود' });
+    if (!found) return res.status(404).json({ error: req.t('errors.requestNotFound') });
     const r = found[1];
     const activationMap = r.activation_data || {};
     const devices = collectDevicesData(r).filter((d) => !d.returned);
@@ -150,7 +150,7 @@ export function requestRoutes(dm) {
 
   router.post('/:id/invoice', (req, res) => {
     const found = dm.findRequest(req.params.id);
-    if (!found) return res.status(404).json({ error: 'طلب الصرف غير موجود' });
+    if (!found) return res.status(404).json({ error: req.t('errors.requestNotFound') });
     const r = found[1];
     r.request_id = req.params.id;
     attachInvoice(r, {
@@ -171,7 +171,7 @@ export function requestRoutes(dm) {
 
   router.post('/:id/shipment', (req, res) => {
     const found = dm.findRequest(req.params.id);
-    if (!found) return res.status(404).json({ error: 'طلب الصرف غير موجود' });
+    if (!found) return res.status(404).json({ error: req.t('errors.requestNotFound') });
     const r = found[1];
     r.request_id = req.params.id;
     attachShipment(r, {
@@ -190,7 +190,7 @@ export function requestRoutes(dm) {
 
   router.post('/:id/hand-delivery', (req, res) => {
     const found = dm.findRequest(req.params.id);
-    if (!found) return res.status(404).json({ error: 'طلب الصرف غير موجود' });
+    if (!found) return res.status(404).json({ error: req.t('errors.requestNotFound') });
     const r = found[1];
     r.request_id = req.params.id;
     attachHandDelivery(r, {
@@ -211,11 +211,12 @@ export function requestRoutes(dm) {
         reqId,
         req.body.devices_data || [],
         req.body.storage_id || null,
+        req.t,
       );
       const found = dm.findRequest(reqId);
       res.json({ summary, req: dm.normalizeImages(found[1]) });
     } catch (e) {
-      res.status(400).json({ error: e.message });
+      res.status(400).json({ error: req.t(e.message) });
     }
   });
 
@@ -226,35 +227,36 @@ export function requestRoutes(dm) {
         reqId,
         req.body.device_ids || [],
         req.body.notes || '',
+        req.t,
       );
       const found = dm.findRequest(reqId);
       res.json({ summary, req: dm.normalizeImages(found[1]) });
     } catch (e) {
-      res.status(400).json({ error: e.message });
+      res.status(400).json({ error: req.t(e.message) });
     }
   });
 
   router.get('/customers/:name/devices', (req, res) => {
     const file = dm.getCustomerDevicesFile(req.params.name);
-    if (!file) return res.status(404).json({ error: 'لا توجد بيانات أجهزة لهذا العميل' });
+    if (!file) return res.status(404).json({ error: req.t('errors.noCustomerDeviceData') });
     res.json(file);
   });
 
   router.post('/:id/financial-deduct', (req, res) => {
     const reqId = parseReqId(req.params.id);
     try {
-      const [, summary] = deviceService.deductFinancialBalance(reqId, req.body.devices_data || null);
+      const [, summary] = deviceService.deductFinancialBalance(reqId, req.body.devices_data || null, req.t);
       const found = dm.findRequest(reqId);
       res.json({ summary, req: dm.normalizeImages(found[1]) });
     } catch (e) {
-      res.status(400).json({ error: e.message });
+      res.status(400).json({ error: req.t(e.message) });
     }
   });
 
   router.post('/:id/confirm-dispatch', (req, res) => {
     const reqId = parseReqId(req.params.id);
     const found = dm.findRequest(reqId);
-    if (!found) return res.status(404).json({ error: 'طلب الصرف غير موجود' });
+    if (!found) return res.status(404).json({ error: req.t('errors.requestNotFound') });
     try {
       const r = found[1];
       const summaries = [];
@@ -264,27 +266,28 @@ export function requestRoutes(dm) {
           reqId,
           devicesData,
           req.body.storage_id || null,
+          req.t,
         );
         summaries.push(summary);
       } else if (!r.devices_confirmed) {
-        return res.status(400).json({ error: 'لا توجد أرقام أجهزة في الجدولين' });
+        return res.status(400).json({ error: req.t('errors.noDeviceNumbersInTables') });
       }
       const updated = dm.getRequest(reqId);
       if (!updated.financial_deducted) {
         try {
-          const [, summary] = deviceService.deductFinancialBalance(reqId, devicesData.length ? devicesData : null);
+          const [, summary] = deviceService.deductFinancialBalance(reqId, devicesData.length ? devicesData : null, req.t);
           summaries.push(summary);
         } catch (e) {
-          if (!summaries.length) return res.status(400).json({ error: e.message });
+          if (!summaries.length) return res.status(400).json({ error: req.t(e.message) });
           summaries.push(e.message);
         }
       } else if (!summaries.length) {
-        return res.status(400).json({ error: 'تم حفظ الأجهزة وخصم الرصيد مسبقاً لهذا الطلب' });
+        return res.status(400).json({ error: req.t('errors.alreadySavedAndDeducted') });
       }
       const finalReq = dm.normalizeImages(dm.getRequest(reqId));
       res.json({ summary: summaries.join('\n\n'), req: finalReq });
     } catch (e) {
-      res.status(400).json({ error: e.message });
+      res.status(400).json({ error: req.t(e.message) });
     }
   });
 
@@ -296,11 +299,12 @@ export function requestRoutes(dm) {
         req.body.serial,
         req.body.date || '',
         req.body.notes || '',
+        req.t,
       );
       const [activated, total] = activationService.activationProgress(r);
       res.json({ req: dm.normalizeImages(r), progress: { activated, total } });
     } catch (e) {
-      res.status(400).json({ error: e.message });
+      res.status(400).json({ error: req.t(e.message) });
     }
   });
 
@@ -311,11 +315,12 @@ export function requestRoutes(dm) {
         reqId,
         req.body.date || '',
         req.body.notes || 'تحميل شامل',
+        req.t,
       );
       const [activated, total] = activationService.activationProgress(r);
       res.json({ count, req: dm.normalizeImages(r), progress: { activated, total } });
     } catch (e) {
-      res.status(400).json({ error: e.message });
+      res.status(400).json({ error: req.t(e.message) });
     }
   });
 

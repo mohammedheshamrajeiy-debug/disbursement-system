@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { api, uploadImages } from "../../api.js";
 import { useNotify } from "../../components/ui.jsx";
 import RequestPanel from "../../components/RequestPanel.jsx";
@@ -9,6 +10,7 @@ import { exportCsv } from "../../utils.js";
 
 export default function DevicesScreen() {
   const notify = useNotify();
+  const { t } = useTranslation();
   const { selectedRequest, setSelectedRequest } = useNav();
 
   const [reqId, setReqId] = useState("");
@@ -44,12 +46,12 @@ export default function DevicesScreen() {
   const [view, setView] = useState(null);
 
   const drawerItems = [
-    { key: "summary", label: "معلومات الطلب" },
-    { key: "delivery", label: "تفاصيل الشحن والاستلام" },
-    { key: "actions", label: "الأجهزة والإجراءات" },
-    { key: "saved", label: "الطلبات المحفوظة" },
-    { key: "return", label: "المرتجع" },
-    { key: "defect", label: "العيب المصنعي" },
+    { key: "summary", label: t("devicesScreen.drawerSummary") },
+    { key: "delivery", label: t("devicesScreen.drawerDelivery") },
+    { key: "actions", label: t("devicesScreen.drawerActions") },
+    { key: "saved", label: t("devicesScreen.drawerSaved") },
+    { key: "return", label: t("devicesScreen.drawerReturn") },
+    { key: "defect", label: t("devicesScreen.drawerDefect") },
   ];
 
   async function loadRequest(id) {
@@ -98,7 +100,7 @@ export default function DevicesScreen() {
     // `cartonTable` and both think none of the carton's devices are added
     // yet, so the whole carton gets pushed in twice.
     if (cartonFetchBusy) return;
-    if (!cartonNo.trim()) return notify("أدخل رقم الكرتونة", "error");
+    if (!cartonNo.trim()) return notify(t("devicesScreen.enterCartonNo"), "error");
     setCartonFetchBusy(true);
     try {
       const q = new URLSearchParams({
@@ -108,7 +110,10 @@ export default function DevicesScreen() {
       const d = await api(`/inventory/carton?${q}`);
       if (!d.items.length)
         return notify(
-          `لا توجد كرتونة "${cartonNo.trim()}" في ${d.label}`,
+          t("devicesScreen.cartonNotFound", {
+            carton: cartonNo.trim(),
+            storage: t("storage." + storageId),
+          }),
           "error",
         );
       const withMeta = d.items.map((it) => ({
@@ -119,7 +124,7 @@ export default function DevicesScreen() {
       const existing = new Set(cartonTable.map((r) => r.ID));
       const fresh = withMeta.filter((r) => !existing.has(r.ID));
       setCartonTable((t) => [...t, ...fresh]);
-      notify(`تمت إضافة ${fresh.length} جهاز من الكرتونة`);
+      notify(t("devicesScreen.addedFromCarton", { count: fresh.length }));
       setCartonNo("");
     } finally {
       setCartonFetchBusy(false);
@@ -127,14 +132,17 @@ export default function DevicesScreen() {
   }
 
   function deleteCarton() {
-    if (!cartonNo.trim()) return notify("أدخل رقم الكرتونة", "error");
+    if (!cartonNo.trim()) return notify(t("devicesScreen.enterCartonNo"), "error");
     const num = cartonNo.trim();
     const remaining = cartonTable.filter(
       (r) => String(r.CartonSerialNo || "") !== num,
     );
     const removedCount = cartonTable.length - remaining.length;
     if (!removedCount)
-      return notify(`لا توجد كرتونة "${num}" في الجدول`, "error");
+      return notify(
+        t("devicesScreen.cartonNotInTable", { carton: num }),
+        "error",
+      );
     setCartonTable(remaining);
     setCartonSel((prev) => {
       const next = new Set(prev);
@@ -143,18 +151,18 @@ export default function DevicesScreen() {
       }
       return next;
     });
-    notify(`تم حذف ${removedCount} جهاز من الكرتونة ${num}`);
+    notify(t("devicesScreen.deletedFromCarton", { count: removedCount, carton: num }));
     setCartonNo("");
   }
 
   function addCustSelected() {
     const picked = custItems.filter((r) => custSel.has(r.ID));
     if (!picked.length)
-      return notify("حدد أجهزة من قائمة مخزن خدمة العملاء", "error");
+      return notify(t("devicesScreen.selectFromCustomerStorage"), "error");
     const existing = new Set(individualTable.map((r) => r.ID));
     const fresh = picked.filter((r) => !existing.has(r.ID));
     setIndividualTable((t) => [...t, ...fresh]);
-    notify(`تمت إضافة ${fresh.length} جهاز`);
+    notify(t("devicesScreen.addedDevices", { count: fresh.length }));
     setCustSel(new Set());
   }
 
@@ -167,11 +175,11 @@ export default function DevicesScreen() {
     setIndividualTable(newIndividual);
     setCartonSel(new Set());
     setIndividualSel(new Set());
-    notify("تم حذف المحدد");
+    notify(t("devicesScreen.deletedSelected"));
   }
 
   function deleteAll() {
-    if (!window.confirm("حذف كل الأجهزة من الجدولين؟")) return;
+    if (!window.confirm(t("devicesScreen.confirmDeleteAll"))) return;
     setCartonTable([]);
     setIndividualTable([]);
     setCartonSel(new Set());
@@ -182,8 +190,8 @@ export default function DevicesScreen() {
     exportCsv(
       `devices_${reqId || "table"}.csv`,
       [
-        "اسم العميل",
-        "رقم الفاتورة",
+        t("devicesScreen.customerName"),
+        t("devicesScreen.invoiceNumber"),
         "ID",
         "CartonSerialNo",
         "DecoderSerialNo",
@@ -191,7 +199,7 @@ export default function DevicesScreen() {
         "CardSerialNo",
         "Model_name",
         "SKU",
-        "المدة",
+        t("devicesScreen.duration"),
       ],
       cartonTable
         .concat(individualTable)
@@ -223,10 +231,10 @@ export default function DevicesScreen() {
     // server appended them again (server also de-dupes now, but stopping
     // the double request here is still the right fix).
     if (saveBusy) return;
-    if (!reqId) return notify("اختر طلباً أولاً", "error");
+    if (!reqId) return notify(t("devicesScreen.selectRequestFirst"), "error");
     const devices = buildDevicesData();
     if (!devices.length && !(request && request.devices_confirmed)) {
-      return notify("لا توجد أجهزة في الجدولين", "error");
+      return notify(t("devicesScreen.noDevicesInTables"), "error");
     }
     setSaveBusy(true);
     try {
@@ -237,7 +245,7 @@ export default function DevicesScreen() {
           body: { devices_data: devices, storage_id: storageId },
         },
       );
-      notify(data.summary || "تم الحفظ والخصم");
+      notify(data.summary || t("devicesScreen.savedAndDeducted"));
       setCartonTable([]);
       setIndividualTable([]);
       setCartonSel(new Set());
@@ -257,9 +265,10 @@ export default function DevicesScreen() {
   }
 
   async function saveDelivery() {
-    if (!reqId) return notify("اختر طلباً أولاً", "error");
+    if (!reqId) return notify(t("devicesScreen.selectRequestFirst"), "error");
     if (method === "shipment") {
-      if (!bolNumber.trim()) return notify("أدخل رقم البوليصة", "error");
+      if (!bolNumber.trim())
+        return notify(t("devicesScreen.enterBolNumber"), "error");
       await api(`/requests/${encodeURIComponent(reqId)}/shipment`, {
         method: "POST",
         body: {
@@ -269,7 +278,7 @@ export default function DevicesScreen() {
           image: shipImage,
         },
       });
-      notify("تم حفظ بيانات الشحن");
+      notify(t("devicesScreen.shipmentSaved"));
       setBolNumber("");
       setCarrier("");
       setShipDate("");
@@ -284,7 +293,7 @@ export default function DevicesScreen() {
           image: handImage,
         },
       });
-      notify("تم حفظ بيانات الاستلام اليدوي");
+      notify(t("devicesScreen.handDeliverySaved"));
       setHandDate("");
       setHandReceiver("");
       setHandNotes("");
@@ -331,7 +340,7 @@ export default function DevicesScreen() {
       <RequestPanel
         source="all"
         stage="devices"
-        title="طلبات بانتظار الأجهزة"
+        title={t("devicesScreen.panelTitle")}
         sections={["header", "notes", "invoice", "shipment", "hand", "devices"]}
         highlight={selectedRequest?.req_id}
         showDetails={false}
@@ -418,7 +427,7 @@ export default function DevicesScreen() {
 
       {view ? (
         <ImagesModal
-          title="صور الشحن / التسليم"
+          title={t("devicesScreen.shipImagesTitle")}
           urls={view}
           onClose={() => setView(null)}
         />

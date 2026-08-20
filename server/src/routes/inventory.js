@@ -77,7 +77,7 @@ export function inventoryRoutes(dm) {
       total = rows.length;
       added = inventoryService.importFromExcelRows(rows, req.body.headers, storageId);
     } else {
-      return res.status(400).json({ error: 'لم يتم إرسال ملف أو صفوف بيانات' });
+      return res.status(400).json({ error: req.t('errors.noFileOrRows') });
     }
 
     const label = dm.getStorageLabel(storageId);
@@ -91,7 +91,7 @@ export function inventoryRoutes(dm) {
       req.body.to,
     );
     if (!moved) {
-      return res.status(404).json({ error: 'لم يتم العثور على الكرتون في المخزن المصدر' });
+      return res.status(404).json({ error: req.t('errors.cartonNotFoundInStorage') });
     }
     res.json({
       moved,

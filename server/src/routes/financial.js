@@ -38,7 +38,7 @@ export function financialRoutes(dm) {
   });
 
   router.post('/import-excel', upload.single('file'), (req, res) => {
-    if (!req.file) return res.status(400).json({ error: 'لم يتم إرسال ملف' });
+    if (!req.file) return res.status(400).json({ error: req.t('errors.noFile') });
     const wb = readWorkbook(req.file.buffer);
     const sheetName = req.body.sheet_name || null;
     const balanceCol = req.body.balance_column !== undefined && req.body.balance_column !== ''
@@ -65,25 +65,25 @@ export function financialRoutes(dm) {
   });
 
   router.post('/:id/deduct', (req, res) => {
-    const [success, message] = dm.deductFromRecord(req.params.id, Number(req.body.amount) || 0);
+    const [success, message] = dm.deductFromRecord(req.params.id, Number(req.body.amount) || 0, req.t);
     if (!success) return res.status(400).json({ error: message });
     res.json({ message, record: dm.getRecord(req.params.id).toJSON() });
   });
 
   router.post('/:id/add', (req, res) => {
-    const [success, message] = dm.addToBalance(req.params.id, Number(req.body.amount) || 0);
+    const [success, message] = dm.addToBalance(req.params.id, Number(req.body.amount) || 0, req.t);
     if (!success) return res.status(400).json({ error: message });
     res.json({ message, record: dm.getRecord(req.params.id).toJSON() });
   });
 
   router.post('/:id/update-balance', (req, res) => {
-    const [success, message] = dm.updateRecordBalance(req.params.id, Number(req.body.balance) || 0);
+    const [success, message] = dm.updateRecordBalance(req.params.id, Number(req.body.balance) || 0, req.t);
     if (!success) return res.status(400).json({ error: message });
     res.json({ message, record: dm.getRecord(req.params.id).toJSON() });
   });
 
   router.delete('/:id', (req, res) => {
-    const [success, message] = dm.deleteRecord(req.params.id);
+    const [success, message] = dm.deleteRecord(req.params.id, req.t);
     if (!success) return res.status(400).json({ error: message });
     res.json({ message });
   });

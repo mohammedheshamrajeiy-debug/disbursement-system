@@ -1,5 +1,6 @@
 import { STATUS_ACTIVATING, STATUS_FULLY_ACTIVATED } from '../config.js';
 import { parseReqId } from './requestService.js';
+import { t as defaultT } from '../i18n.js';
 
 export class ActivationService {
   constructor(dm) {
@@ -13,15 +14,15 @@ export class ActivationService {
     return [...new Set([...fromDevices, ...serials].filter(Boolean))];
   }
 
-  activateDevice(reqId, serial, date, notes) {
+  activateDevice(reqId, serial, date, notes, t = defaultT) {
     reqId = parseReqId(reqId);
     if (!reqId || !this.dm.requestExists(reqId)) {
-      throw new Error('طلب الصرف غير موجود');
+      throw new Error(t('errors.requestNotFound'));
     }
     const req = this.dm.getRequest(reqId);
     const allSerials = this.allSerials(req);
     if (!allSerials.includes(serial)) {
-      throw new Error(`الرقم ${serial} غير موجود ضمن الأجهزة المصروفة`);
+      throw new Error(t('errors.serialNotInRequest', { serial }));
     }
     const activationData = req.activation_data || {};
     activationData[serial] = {
@@ -42,10 +43,10 @@ export class ActivationService {
     return req;
   }
 
-  activateAll(reqId, date, notes) {
+  activateAll(reqId, date, notes, t = defaultT) {
     reqId = parseReqId(reqId);
     if (!reqId || !this.dm.requestExists(reqId)) {
-      throw new Error('طلب الصرف غير موجود');
+      throw new Error(t('errors.requestNotFound'));
     }
     const req = this.dm.getRequest(reqId);
     const activationData = req.activation_data || {};

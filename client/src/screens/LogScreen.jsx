@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { api, downloadUrl } from '../api.js';
 import { Card, Table, useNotify } from '../components/ui.jsx';
 import ReturnsPanel from '../components/ReturnsPanel.jsx';
@@ -6,14 +7,15 @@ import DefectsPanel from '../components/DefectsPanel.jsx';
 
 export default function LogScreen() {
   const notify = useNotify();
+  const { t } = useTranslation();
   const [entries, setEntries] = useState([]);
   const [summary, setSummary] = useState(null);
   const [activeSection, setActiveSection] = useState('log');
 
   const drawerItems = [
-    { key: 'log', label: 'سجل العمليات' },
-    { key: 'return', label: 'المرتجع' },
-    { key: 'defect', label: 'العيب المصنعي' },
+    { key: 'log', label: t('logScreen.operationsLog') },
+    { key: 'return', label: t('logScreen.returns') },
+    { key: 'defect', label: t('logScreen.defect') },
   ];
 
   async function load() {
@@ -31,18 +33,18 @@ export default function LogScreen() {
   }, []);
 
   async function clearLog() {
-    if (!window.confirm('مسح سجل العمليات بالكامل؟')) return;
+    if (!window.confirm(t('logScreen.confirmClearLog'))) return;
     await api('/log', { method: 'DELETE' });
-    notify('تم مسح السجل');
+    notify(t('logScreen.logCleared'));
     load();
     loadSummary();
   }
 
   const columns = [
     { title: '#', key: 'id' },
-    { title: 'الوقت', key: 'timestamp_display' },
-    { title: 'النوع', key: 'type' },
-    { title: 'الوصف', key: 'description' },
+    { title: t('logScreen.time'), key: 'timestamp_display' },
+    { title: t('logScreen.type'), key: 'type' },
+    { title: t('logScreen.description'), key: 'description' },
   ];
 
   return (
@@ -50,29 +52,29 @@ export default function LogScreen() {
       <div className="request-form-layout">
         <div className="request-form-content">
           {activeSection === 'return' ? (
-            <ReturnsPanel title="المرتجعات" />
+            <ReturnsPanel title={t('logScreen.returnsTitle')} />
           ) : activeSection === 'defect' ? (
-            <DefectsPanel title="العيب المصنعي" />
+            <DefectsPanel title={t('logScreen.defect')} />
           ) : (
-            <Card title="سجل العمليات">
+            <Card title={t('logScreen.operationsLog')}>
               {summary ? (
                 <div className="info-bar">
-                  <span>إجمالي العمليات: <b>{summary.total || entries.length}</b></span>
+                  <span>{t('logScreen.totalOperations')} <b>{summary.total || entries.length}</b></span>
                 </div>
               ) : null}
               <div className="form-row">
                 <button className="btn btn-primary" onClick={load}>
-                  تحديث
+                  {t('common.update')}
                 </button>
                 <a className="btn" href={downloadUrl('/log/export')}>
-                  تصدير Excel
+                  {t('logScreen.exportExcel')}
                 </a>
                 <button className="btn btn-danger" onClick={clearLog}>
-                  مسح السجل
+                  {t('logScreen.clearLog')}
                 </button>
               </div>
               <div style={{ marginTop: 12 }}>
-                <Table columns={columns} rows={entries} emptyText="لا توجد عمليات مسجلة" />
+                <Table columns={columns} rows={entries} emptyText={t('logScreen.noOperations')} />
               </div>
             </Card>
           )}

@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { INVENTORY_STORAGE_RETURN, INVENTORY_COLUMNS } from '../config.js';
+import { INVENTORY_STORAGE_RETURN, INVENTORY_COLUMNS, REQUEST_SOURCE_ALL, REQUEST_SOURCE_DISBURSEMENT } from '../config.js';
 import { requireTab } from './auth.js';
 
 export function returnRoutes(dm) {
@@ -17,7 +17,7 @@ export function returnRoutes(dm) {
 
   router.get('/requests/:id', (req, res) => {
     const record = dm.getReturnRequest(String(req.params.id || '').trim());
-    if (!record) return res.status(404).json({ error: 'رقم مرتجع غير موجود' });
+    if (!record) return res.status(404).json({ error: req.t('errors.returnNotFound') });
     res.json({ request: record });
   });
 
@@ -28,8 +28,12 @@ export function returnRoutes(dm) {
 
   // Names of people who currently have at least one un-returned device on
   // record — used to power the name datalist in the المرتجع screen.
+  // `source` (وكيل → 'disbursement', عميل → 'customer') narrows this to
+  // only names that actually received something through that channel, so
+  // picking وكيل doesn't surface a same-named عميل and vice versa.
   router.get('/names', (req, res) => {
-    res.json({ names: dm.getCustomerDeviceNames() });
+    const source = String(req.query.source || REQUEST_SOURCE_ALL).trim();
+    res.json({ names: dm.getCustomerDeviceNames(source) });
   });
 
   // Look up what a specific person actually received, either by carton
@@ -38,11 +42,12 @@ export function returnRoutes(dm) {
   router.get('/lookup', (req, res) => {
     const name = String(req.query.name || '').trim();
     const raw = String(req.query.carton || '').trim();
+    const source = String(req.query.source || REQUEST_SOURCE_ALL).trim();
     if (!name || !raw) return res.json({ items: [] });
 
-    let items = dm.findCustomerDevicesByCarton(name, raw);
+    let items = dm.findCustomerDevicesByCarton(name, raw, source);
     if (!items.length) {
-      const single = dm.findCustomerDeviceBySerial(name, raw);
+      const single = dm.findCustomerDeviceBySerial(name, raw, source);
       if (single) items = [single];
     }
     res.json({ items });
@@ -66,11 +71,15 @@ export function returnRoutes(dm) {
     const notes = req.body.notes || '';
     const notesImage = req.body.notes_image || '';
     const devices = Array.isArray(req.body.devices) ? req.body.devices : [];
+    // Which pool اسم المستفيد was searched against — recorded on the
+    // return itself purely so the log/detail view can show whether this
+    // was a وكيل or عميل return; doesn't affect how the return is filed.
+    const beneficiaryType = String(req.body.source || '').trim() === REQUEST_SOURCE_DISBURSEMENT ? 'وكيل' : 'عميل';
     if (!name) {
-      return res.status(400).json({ error: 'أدخل اسم المستفيد' });
+      return res.status(400).json({ error: req.t('errors.enterName') });
     }
     if (!devices.length) {
-      return res.status(400).json({ error: 'أضف جهازاً واحداً على الأقل' });
+      return res.status(400).json({ error: req.t('errors.addDevice') });
     }
 
     const seen = new Set();
@@ -86,7 +95,7 @@ export function returnRoutes(dm) {
       clean.push({ ...item, req_id: (raw && raw.req_id) || '' });
     }
     if (!clean.length) {
-      return res.status(400).json({ error: 'لم يتم تحديد أي جهاز صالح للإرجاع' });
+      return res.status(400).json({ error: req.t('errors.noValidDevices') });
     }
 
     const returnReqId = dm.generateReturnRequestId();
@@ -123,6 +132,7 @@ export function returnRoutes(dm) {
     dm.addReturnRequest({
       req_id: returnReqId,
       name,
+      beneficiary_type: beneficiaryType,
       notes,
       notes_image: notesImage,
       device_ids: clean.map((d) => d.ID),

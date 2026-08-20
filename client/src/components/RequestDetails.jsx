@@ -1,23 +1,25 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { downloadUrl } from "../api.js";
 import ImagesModal, { ImageThumbs } from "./ImagesModal.jsx";
 import { fmtTime, isImageUrl } from "./ui.jsx";
 
 const SECTIONS = {
-  header: "بيانات أساسية",
-  notes: "ملاحظات",
-  invoice: "الفاتورة",
-  shipment: "الشحن",
-  hand: "استلام يدوي",
-  devices: "الأجهزة",
+  header: "requestDetails.basicInfo",
+  notes: "requestDetails.notes",
+  invoice: "requestDetails.invoice",
+  shipment: "requestDetails.shipment",
+  hand: "requestDetails.hand",
+  devices: "requestDetails.devices",
 };
 
 export default function RequestDetails({ request, sections, hideFinancial = false }) {
+  const { t } = useTranslation();
   const [view, setView] = useState(null);
   const show = sections || Object.keys(SECTIONS);
 
   if (!request) {
-    return <div className="empty-hint">لم يتم اختيار طلب</div>;
+    return <div className="empty-hint">{t("requestDetails.noRequestSelected")}</div>;
   }
 
   const d = request.display || request;
@@ -63,7 +65,7 @@ export default function RequestDetails({ request, sections, hideFinancial = fals
     if (!u.length) return null;
     return (
       <span className="img-chip" onClick={() => setView({ urls: u, label })}>
-        {u.length > 1 ? `عرض (${u.length})` : "عرض"} {label}
+        {t("requestDetails.view", { count: u.length })} {label}
       </span>
     );
   }
@@ -82,16 +84,20 @@ export default function RequestDetails({ request, sections, hideFinancial = fals
       {returnedCount > 0 && (
         <div className="returns-banner">
           <span>
-            ⚠️ هذا العميل أرجع <b>{returnedCount}</b> جهاز من هذا الطلب
+            {t("requestDetails.returnedBanner", { count: returnedCount })}
           </span>
           <ul>
             {returns.map((r, i) => (
               <li key={i}>
                 {r.return_req_id ? <b>{r.return_req_id}</b> : null}
                 {r.return_req_id ? " — " : ""}
-                {(r.device_ids || []).length} جهاز
-                {r.carton_no ? ` — كرتونة ${r.carton_no}` : ""} —{" "}
-                {fmtTime(r.date)}
+                {t("requestDetails.returnDeviceCount", {
+                  count: (r.device_ids || []).length,
+                })}
+                {r.carton_no
+                  ? t("requestDetails.carton", { no: r.carton_no })
+                  : ""}{" "}
+                — {fmtTime(r.date)}
                 {r.notes ? ` (${r.notes})` : ""}
                 {(r.device_ids || []).length ? (
                   <div className="returns-device-ids">
@@ -107,48 +113,48 @@ export default function RequestDetails({ request, sections, hideFinancial = fals
       {show.includes("header") && (
         <div className="details-grid">
           <div className="kv">
-            <b>رقم الطلب:</b> {d.req_id}
+            <b>{t("requestDetails.requestNumber")}:</b> {d.req_id}
           </div>
           <div className="kv">
-            <b>الاسم:</b> {d.name}
+            <b>{t("requestDetails.name")}:</b> {d.name}
           </div>
           <div className="kv">
-            <b>الهاتف:</b> {d.phone || "—"}
+            <b>{t("requestDetails.phone")}:</b> {d.phone || "—"}
           </div>
           <div className="kv">
-            <b>المنطقة:</b> {d.region || "—"}
+            <b>{t("requestDetails.region")}:</b> {d.region || "—"}
           </div>
           <div className="kv">
-            <b>المستلم:</b> {d.receiver || "—"}
+            <b>{t("requestDetails.receiver")}:</b> {d.receiver || "—"}
           </div>
           <div className="kv">
-            <b>النوع:</b> {d.type || d.beneficiary_type || "—"}
+            <b>{t("requestDetails.type")}:</b> {d.type || d.beneficiary_type || "—"}
           </div>
           <div className="kv">
-            <b>الحالة:</b> <StatusText status={d.status} />
+            <b>{t("requestDetails.status")}:</b> <StatusText status={d.status} />
           </div>
           <div className="kv">
-            <b>عدد الأصناف:</b> {d.items_count || "—"}
+            <b>{t("requestDetails.itemsCount")}:</b> {d.items_count || "—"}
           </div>
           <div className="kv">
-            <b>إجمالي الكمية:</b> {d.total_count || "—"}
+            <b>{t("requestDetails.totalQuantity")}:</b> {d.total_count || "—"}
           </div>
           <div className="kv">
-            <b>تاريخ الإنشاء:</b> {fmtTime(d.created_at)}
+            <b>{t("requestDetails.createdAt")}:</b> {fmtTime(d.created_at)}
           </div>
         </div>
       )}
 
       {show.includes("header") && (d.items || []).length > 0 && (
         <div className="details-section">
-          <h4>الأصناف ({d.items.length})</h4>
+          <h4>{t("requestDetails.itemsHeader", { count: d.items.length })}</h4>
           <div className="table-wrap">
             <table className="grid">
               <thead>
                 <tr>
-                  <th>النوع</th>
-                  <th>الكمية</th>
-                  <th>الوصف</th>
+                  <th>{t("requestDetails.type")}</th>
+                  <th>{t("requestDetails.quantity")}</th>
+                  <th>{t("requestDetails.description")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -167,14 +173,14 @@ export default function RequestDetails({ request, sections, hideFinancial = fals
 
       {show.includes("notes") && (
         <div className="details-section">
-          <h4>ملاحظات</h4>
+          <h4>{t("requestDetails.notes")}</h4>
           <div style={{ whiteSpace: "pre-wrap" }}>
-            {d.notes || "لا توجد ملاحظات"}
+            {d.notes || t("requestDetails.noNotes")}
           </div>
           <ImageThumbs
             urls={viewableUrls("notes_image")}
             onView={() =>
-              setView({ urls: viewableUrls("notes_image"), label: "ملاحظات" })
+              setView({ urls: viewableUrls("notes_image"), label: t("requestDetails.notes") })
             }
           />
         </div>
@@ -182,61 +188,61 @@ export default function RequestDetails({ request, sections, hideFinancial = fals
 
       {show.includes("invoice") && (
         <div className="details-section">
-          <h4>الفاتورة</h4>
+          <h4>{t("requestDetails.invoice")}</h4>
           <div className="details-grid">
             <div className="kv">
-              <b>رقم الفاتورة:</b> {d.invoice_number || "—"}
+              <b>{t("requestDetails.invoiceNumber")}:</b> {d.invoice_number || "—"}
             </div>
             <div className="kv">
-              <b>تاريخ الفاتورة:</b> {d.invoice_date || "—"}
+              <b>{t("requestDetails.invoiceDate")}:</b> {d.invoice_date || "—"}
             </div>
             <div className="kv">
-              <b>أمر البيع:</b> {d.sale_order || "—"}
+              <b>{t("requestDetails.saleOrder")}:</b> {d.sale_order || "—"}
             </div>
           </div>
           <div className="img-thumbs">
-            {imageBtn(d.invoice_images || d.invoice_image, "أمر البيع")}
-            {imageBtn(d.accountant_invoice_image, "الفاتورة المحاسبية")}
+            {imageBtn(d.invoice_images || d.invoice_image, t("requestDetails.saleOrder"))}
+            {imageBtn(d.accountant_invoice_image, t("requestDetails.accountingInvoice"))}
           </div>
         </div>
       )}
 
       {show.includes("shipment") && (
         <div className="details-section">
-          <h4>الشحن</h4>
+          <h4>{t("requestDetails.shipment")}</h4>
           <div className="details-grid">
             <div className="kv">
-              <b>رقم البوليصة:</b> {d.shipment_id || "—"}
+              <b>{t("requestDetails.waybillNumber")}:</b> {d.shipment_id || "—"}
             </div>
             <div className="kv">
-              <b>شركة النقل:</b> {d.shipment_carrier || "—"}
+              <b>{t("requestDetails.carrier")}:</b> {d.shipment_carrier || "—"}
             </div>
             <div className="kv">
-              <b>تاريخ الشحن:</b> {d.shipment_date || "—"}
+              <b>{t("requestDetails.shipmentDate")}:</b> {d.shipment_date || "—"}
             </div>
           </div>
           <div className="img-thumbs">
-            {imageBtn(d.shipment_images || d.shipment_image, "الشحنة")}
+            {imageBtn(d.shipment_images || d.shipment_image, t("requestDetails.shipmentImage"))}
           </div>
         </div>
       )}
 
       {show.includes("hand") && (
         <div className="details-section">
-          <h4>استلام يدوي</h4>
+          <h4>{t("requestDetails.hand")}</h4>
           <div className="details-grid">
             <div className="kv">
-              <b>المستلم:</b> {d.hand_delivery_receiver || d.hand_receiver || "—"}
+              <b>{t("requestDetails.receiver")}:</b> {d.hand_delivery_receiver || d.hand_receiver || "—"}
             </div>
             <div className="kv">
-              <b>التاريخ:</b> {d.hand_delivery_date || d.hand_date || "—"}
+              <b>{t("requestDetails.date")}:</b> {d.hand_delivery_date || d.hand_date || "—"}
             </div>
             <div className="kv">
-              <b>ملاحظات:</b> {d.hand_delivery_notes || d.hand_notes || "—"}
+              <b>{t("requestDetails.notes")}:</b> {d.hand_delivery_notes || d.hand_notes || "—"}
             </div>
           </div>
           <div className="img-thumbs">
-            {imageBtn(d.hand_delivery_image || d.hand_image, "الاستلام")}
+            {imageBtn(d.hand_delivery_image || d.hand_image, t("requestDetails.handoverImage"))}
           </div>
         </div>
       )}
@@ -244,18 +250,22 @@ export default function RequestDetails({ request, sections, hideFinancial = fals
       {show.includes("devices") && (
         <div className="details-section">
           <h4>
-            الأجهزة ({remainingDevices.length}
-            {returnedCount > 0 ? ` من ${devices.length}` : ""})
+            {t("requestDetails.devicesHeader", {
+              count: remainingDevices.length,
+            })}
+            {returnedCount > 0
+              ? t("requestDetails.ofTotal", { count: devices.length })
+              : ""}
           </h4>
           {devices.length ? (
             <a
               className="btn"
               href={downloadUrl(`/requests/${encodeURIComponent(d.req_id)}/devices.xlsx`)}
             >
-              فتح شيت الأجهزة (Excel)
+              {t("requestDetails.openDevicesSheet")}
             </a>
           ) : (
-            <div className="empty-hint">لا توجد أجهزة</div>
+            <div className="empty-hint">{t("requestDetails.noDevices")}</div>
           )}
         </div>
       )}
@@ -272,15 +282,16 @@ export default function RequestDetails({ request, sections, hideFinancial = fals
 }
 
 function StatusText({ status }) {
+  const { t } = useTranslation();
   const map = {
-    pending: ["قيد الانتظار", ""],
-    invoice: ["بانتظار الفاتورة", "status-invoice"],
-    devices: ["بانتظار الأجهزة", "status-devices"],
-    shipped: ["تم الشحن", "status-shipped"],
-    hand: ["استلام يدوي", "status-hand"],
-    activation: ["بانتظار التحميل", "status-activation"],
-    activated: ["تم التحميل", "status-activated"],
+    pending: ["status.pending", ""],
+    invoice: ["status.invoice", "status-invoice"],
+    devices: ["status.devices", "status-devices"],
+    shipped: ["status.shipped", "status-shipped"],
+    hand: ["status.hand", "status-hand"],
+    activation: ["status.activation", "status-activation"],
+    activated: ["status.activated", "status-activated"],
   };
   const [label, cls] = map[status] || [status || "—", ""];
-  return <span className={`status-chip ${cls}`}>{label}</span>;
+  return <span className={`status-chip ${cls}`}>{map[status] ? t(label) : label}</span>;
 }

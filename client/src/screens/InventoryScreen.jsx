@@ -1,22 +1,23 @@
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { api, downloadUrl } from "../api.js";
 import { Card, Table, useNotify, money } from "../components/ui.jsx";
 
 const STORAGES = [
-  { id: "storage_1", label: "المخزون 1" },
-  { id: "storage_2", label: "المخزون 2" },
-  { id: "storage_customer", label: "مخزن خدمة العملاء" },
-  { id: "storage_return", label: "مخزن المرتجع" },
-  { id: "storage_defect", label: "مخزن العيب المصنعي" },
+  { id: "storage_1", label: "storage.storage_1" },
+  { id: "storage_2", label: "storage.storage_2" },
+  { id: "storage_customer", label: "storage.storage_customer" },
+  { id: "storage_return", label: "storage.storage_return" },
+  { id: "storage_defect", label: "storage.storage_defect" },
 ];
 
 const INV_COLS = [
   { title: "ID", key: "ID" },
-  { title: "الكرتونة", key: "CartonSerialNo" },
-  { title: "الريسيفر", key: "DecoderSerialNo" },
-  { title: "الشريحة", key: "ChipSerialNo" },
-  { title: "البطاقة", key: "CardSerialNo" },
-  { title: "الموديل", key: "Model_name" },
+  { title: "inventoryScreen.carton", key: "CartonSerialNo" },
+  { title: "inventoryScreen.receiver", key: "DecoderSerialNo" },
+  { title: "inventoryScreen.chip", key: "ChipSerialNo" },
+  { title: "inventoryScreen.card", key: "CardSerialNo" },
+  { title: "inventoryScreen.model", key: "Model_name" },
 ];
 
 // مخزن المرتجع ومخزن العيب المصنعي mix devices from every customer into
@@ -27,7 +28,7 @@ const INV_COLS = [
 const CUSTOMER_NAME_STORAGES = ["storage_return", "storage_defect"];
 const RETURN_INV_COLS = [
   ...INV_COLS,
-  { title: "اسم العميل", key: "CustomerName" },
+  { title: "inventoryScreen.customerName", key: "CustomerName" },
 ];
 
 // مخزن العيب المصنعي cares about what's wrong with the device, not its
@@ -35,14 +36,15 @@ const RETURN_INV_COLS = [
 // a meaningful sequence, so it's shown as a plain row number instead.
 const DEFECT_INV_COLS = [
   { title: "ID", key: "ID", render: (r, i) => i + 1 },
-  { title: "الكرتونة", key: "CartonSerialNo" },
-  { title: "الريسيفر", key: "DecoderSerialNo" },
-  { title: "نوع العطل", key: "DefectType" },
-  { title: "اسم العميل", key: "CustomerName" },
+  { title: "inventoryScreen.carton", key: "CartonSerialNo" },
+  { title: "inventoryScreen.receiver", key: "DecoderSerialNo" },
+  { title: "inventoryScreen.defectType", key: "DefectType" },
+  { title: "inventoryScreen.customerName", key: "CustomerName" },
 ];
 
 export default function InventoryScreen() {
   const notify = useNotify();
+  const { t } = useTranslation();
   const [storageId, setStorageId] = useState("storage_1");
   const [query, setQuery] = useState("");
   const [items, setItems] = useState([]);
@@ -91,7 +93,13 @@ export default function InventoryScreen() {
         method: "POST",
         formData: fd,
       });
-      notify(`تم استيراد ${d.added} من ${d.total} جهاز إلى ${d.label}`);
+      notify(
+        t("inventoryScreen.importedDevices", {
+          added: d.added,
+          total: d.total,
+          label: t("storage." + storageId),
+        }),
+      );
       await loadInventory();
       await loadSummary();
     } finally {
@@ -100,18 +108,24 @@ export default function InventoryScreen() {
   }
 
   async function moveCartonAction() {
-    if (!moveCarton.trim()) return notify("أدخل رقم الكرتونة", "error");
+    if (!moveCarton.trim()) return notify(t("inventoryScreen.enterCarton"), "error");
     const d = await api("/inventory/move-carton", {
       method: "POST",
       body: { carton: moveCarton.trim(), from: moveFrom, to: moveTo },
     });
     if (d.moved > 0) {
-      notify(`تم نقل ${d.moved} جهاز من ${d.from} إلى ${d.to}`);
+      notify(
+        t("inventoryScreen.movedDevices", {
+          count: d.moved,
+          from: t("storage." + moveFrom),
+          to: t("storage." + moveTo),
+        }),
+      );
       setMoveCarton("");
       await loadInventory();
       await loadSummary();
     } else {
-      notify("لم يتم العثور على الكرتونة في المخزن المصدر", "error");
+      notify(t("inventoryScreen.cartonNotFound"), "error");
     }
   }
 
@@ -130,61 +144,65 @@ export default function InventoryScreen() {
 
   return (
     <div>
-      <Card title="ملخص المخزون والرصيد">
+      <Card title={t("inventoryScreen.inventorySummary")}>
         {summary ? (
           <div className="info-bar">
             {summary.storage_counts.map((s) => (
               <span key={s.id}>
-                {s.label}: <b>{s.count}</b>
+                {t("storage." + s.id)}: <b>{s.count}</b>
               </span>
             ))}
             <span>
-              إجمالي المخزون: <b>{summary.inventory_count}</b>
+              {t("inventoryScreen.totalInventory")}{" "}
+              <b>{summary.inventory_count}</b>
             </span>
             <span>
-              عدد السجلات المالية: <b>{summary.record_count}</b>
+              {t("inventoryScreen.financialRecordsCount")}{" "}
+              <b>{summary.record_count}</b>
             </span>
             <span>
-              الرصيد الحالي: <b>{money(summary.total_balance)}</b>
+              {t("inventoryScreen.currentBalance")}{" "}
+              <b>{money(summary.total_balance)}</b>
             </span>
             <span>
-              المخصوم: <b>{money(summary.total_deductions)}</b>
+              {t("inventoryScreen.deductions")}{" "}
+              <b>{money(summary.total_deductions)}</b>
             </span>
           </div>
         ) : null}
       </Card>
 
-      <Card title="نقل كرتونة بين المخازن">
+      <Card title={t("inventoryScreen.moveCartonBetweenStorages")}>
             <div className="form-grid">
               <div className="field">
-                <label>رقم الكرتونة</label>
+                <label>{t("inventoryScreen.cartonNumber")}</label>
                 <input
                   value={moveCarton}
                   onChange={(e) => setMoveCarton(e.target.value)}
                 />
               </div>
               <div className="field">
-                <label>من</label>
+                <label>{t("inventoryScreen.from")}</label>
                 <select
                   value={moveFrom}
                   onChange={(e) => setMoveFrom(e.target.value)}
                 >
                   {STORAGES.map((s) => (
                     <option key={s.id} value={s.id}>
-                      {s.label}
+                      {t(s.label)}
                     </option>
                   ))}
                 </select>
               </div>
               <div className="field">
-                <label>إلى</label>
+                <label>{t("inventoryScreen.to")}</label>
                 <select
                   value={moveTo}
                   onChange={(e) => setMoveTo(e.target.value)}
                 >
                   {STORAGES.map((s) => (
                     <option key={s.id} value={s.id}>
-                      {s.label}
+                      {t(s.label)}
                     </option>
                   ))}
                 </select>
@@ -192,13 +210,13 @@ export default function InventoryScreen() {
               <div className="field">
                 <label>&nbsp;</label>
                 <button className="btn btn-primary" onClick={moveCartonAction}>
-                  نقل
+                  {t("inventoryScreen.move")}
                 </button>
               </div>
             </div>
           </Card>
 
-          <Card title="المخزون">
+          <Card title={t("inventoryScreen.inventory")}>
             <div className="form-row" style={{ marginBottom: 12 }}>
               <div className="radio-row">
                 {STORAGES.map((s) => (
@@ -209,7 +227,7 @@ export default function InventoryScreen() {
                       checked={storageId === s.id}
                       onChange={() => setStorageId(s.id)}
                     />
-                    {s.label}
+                    {t(s.label)}
                     {counts.find((c) => c.id === s.id) ? (
                       <b> ({counts.find((c) => c.id === s.id).count})</b>
                     ) : null}
@@ -219,7 +237,7 @@ export default function InventoryScreen() {
             </div>
             <div className="form-row">
               <div className="field">
-                <label>بحث</label>
+                <label>{t("common.search")}</label>
                 <input
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
@@ -227,10 +245,10 @@ export default function InventoryScreen() {
                 />
               </div>
               <button className="btn" onClick={loadInventory}>
-                بحث
+                {t("common.search")}
               </button>
               <label className="btn" style={{ cursor: "pointer" }}>
-                {busy ? "جاري الاستيراد..." : "استيراد Excel"}
+                {busy ? t("inventoryScreen.importing") : t("inventoryScreen.importExcel")}
                 <input
                   type="file"
                   accept=".xlsx,.xls,.csv"
@@ -239,7 +257,7 @@ export default function InventoryScreen() {
                 />
               </label>
               <button className="btn" onClick={downloadInventory}>
-                تصدير Excel
+                {t("inventoryScreen.exportExcel")}
               </button>
             </div>
             <div className="table-wrap" style={{ marginTop: 12 }}>
@@ -247,7 +265,7 @@ export default function InventoryScreen() {
                 <thead>
                   <tr>
                     {activeCols.map((c) => (
-                      <th key={c.key}>{c.title}</th>
+                      <th key={c.key}>{t(c.title)}</th>
                     ))}
                   </tr>
                 </thead>
@@ -265,7 +283,9 @@ export default function InventoryScreen() {
               </table>
             </div>
             {!items.length ? (
-              <div className="empty-hint">لا توجد أجهزة في هذا المخزن</div>
+              <div className="empty-hint">
+                {t("inventoryScreen.noDevicesInStorage")}
+              </div>
             ) : null}
           </Card>
     </div>

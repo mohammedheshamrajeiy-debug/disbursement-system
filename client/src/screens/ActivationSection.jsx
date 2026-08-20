@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Card, Table, Modal } from "../components/ui.jsx";
 import DetailSection from "./DetailSection.jsx";
 import ReturnsPanel from "../components/ReturnsPanel.jsx";
@@ -35,12 +36,16 @@ export default function ActivationSection({
   setShowReport,
   report,
 }) {
+  const { t } = useTranslation();
   const [devicesOpen, setDevicesOpen] = useState(false);
   const logCols = [
-    { title: "الرقم", render: (r) => r.serial },
-    { title: "التاريخ", render: (r) => (r.active ? r.active.date : "—") },
+    { title: t("activationSection.number"), render: (r) => r.serial },
     {
-      title: "ملاحظات",
+      title: t("activationSection.date"),
+      render: (r) => (r.active ? r.active.date : "—"),
+    },
+    {
+      title: t("activationSection.notes"),
       render: (r) => (r.active ? r.active.notes || "—" : "—"),
     },
   ];
@@ -49,7 +54,7 @@ export default function ActivationSection({
     return (
       <DetailSection
         source="all"
-        title="الطلبات المحفوظة"
+        title={t("activationSection.savedRequests")}
         sections={["header", "notes", "invoice", "shipment", "hand", "devices"]}
         hideFinancial
         highlight={selectedRequest?.req_id}
@@ -59,19 +64,19 @@ export default function ActivationSection({
   }
 
   if (activeSection === "return") {
-    return <ReturnsPanel title="المرتجعات" />;
+    return <ReturnsPanel title={t("activationSection.returns")} />;
   }
 
   if (activeSection === "defect") {
-    return <DefectsPanel title="العيب المصنعي" />;
+    return <DefectsPanel title={t("activationSection.defect")} />;
   }
 
   return (
     <>
-      <Card title="حالة وسجل الطلب">
+      <Card title={t("activationSection.statusAndLog")}>
         <div className="form-row" style={{ gap: 12, marginBottom: 14 }}>
           <div className="field" style={{ flex: 1, minWidth: 180 }}>
-            <label>رقم الطلب</label>
+            <label>{t("activationSection.requestNumber")}</label>
             <input
               value={reqId}
               onChange={(e) => setReqId(e.target.value)}
@@ -79,25 +84,28 @@ export default function ActivationSection({
             />
           </div>
           <button className="btn" onClick={() => setSortAsc(!sortAsc)}>
-            ترتيب ({sortAsc ? "تصاعدي" : "تنازلي"})
+            {t("activationSection.order")} (
+            {sortAsc ? t("activationSection.ascending") : t("activationSection.descending")})
           </button>
         </div>
 
         <div className="info-bar">
           <span>
-            الطلب: <b>{request?.req_id || request?.request_id || "—"}</b>
+            {t("activationSection.requestLabel")}{" "}
+            <b>{request?.req_id || request?.request_id || "—"}</b>
           </span>
           <span>
-            الاسم: <b>{request?.name || "—"}</b>
+            {t("activationSection.nameLabel")} <b>{request?.name || "—"}</b>
           </span>
           <span>
-            الأجهزة: <b>{devices.length}</b>
+            {t("activationSection.devicesLabel")} <b>{devices.length}</b>
           </span>
           <span>
-            محمل: <b>{activated}</b>
+            {t("activationSection.loadedLabel")} <b>{activated}</b>
           </span>
           <span>
-            الحالة: <b>{request?.status || "—"}</b>
+            {t("activationSection.statusLabel")}{" "}
+            <b>{request?.status || "—"}</b>
           </span>
         </div>
 
@@ -107,7 +115,8 @@ export default function ActivationSection({
             className="btn"
             onClick={() => setDevicesOpen((v) => !v)}
           >
-            أجهزة الطلب ({devices.length}) {devicesOpen ? "▴" : "▾"}
+            {t("activationSection.orderDevices", { count: devices.length })}{" "}
+            {devicesOpen ? "▴" : "▾"}
           </button>
         </div>
         {devicesOpen ? (
@@ -115,7 +124,7 @@ export default function ActivationSection({
             columns={deviceColumns}
             rows={deviceRows}
             rowKey={(r) => r.serial}
-            emptyText="لا توجد أجهزة"
+            emptyText={t("activationSection.noDevices")}
           />
         ) : null}
 
@@ -123,56 +132,56 @@ export default function ActivationSection({
           columns={logCols}
           rows={devices.filter((r) => r.active)}
           rowKey={(r) => r.serial}
-          emptyText="لا يوجد تحميل بعد"
+          emptyText={t("activationSection.noActivationsYet")}
         />
-        <Card title="تحميل جهاز">
+        <Card title={t("activationSection.loadDevice")}>
           <div className="form-grid">
             <div className="field">
-              <label>رقم الجهاز</label>
+              <label>{t("activationSection.deviceNumber")}</label>
               <input
                 value={serial}
                 onChange={(e) => setSerial(e.target.value)}
               />
             </div>
             <div className="field">
-              <label>التاريخ</label>
+              <label>{t("activationSection.date")}</label>
               <input
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                placeholder="يوم/شهر/سنة"
+                placeholder={t("activationSection.dayMonthYear")}
               />
             </div>
             <div className="field">
-              <label>ملاحظات</label>
+              <label>{t("activationSection.notes")}</label>
               <input value={notes} onChange={(e) => setNotes(e.target.value)} />
             </div>
           </div>
           <div className="form-row" style={{ marginTop: 12 }}>
             <button className="btn btn-primary" onClick={activate}>
-              تحميل الجهاز
+              {t("activationSection.loadDeviceAction")}
             </button>
             <button className="btn btn-success" onClick={activateAll}>
-              تحميل الكل
+              {t("activationSection.loadAll")}
             </button>
             <button
               className="btn"
               onClick={() =>
                 exportCsv(
-                  "تحميل_الأجهزة.csv",
+                  t("activationSection.csvFileName"),
                   ["serial", "carton", "chip", "status"],
                   devices.map((r) => [
                     r.serial,
                     r.carton,
                     r.chip,
-                    r.active ? "تم التحميل" : "قيد الانتظار",
+                    r.active ? t("status.activated") : t("status.pending"),
                   ]),
                 )
               }
             >
-              تصدير الأجهزة
+              {t("activationSection.exportDevices")}
             </button>
             <button className="btn" onClick={loadReport}>
-              تقرير التحميل
+              {t("activationSection.activationReport")}
             </button>
           </div>
         </Card>
@@ -180,30 +189,31 @@ export default function ActivationSection({
 
       {showReport && report ? (
         <Modal
-          title="تقرير التحميل"
+          title={t("activationSection.activationReport")}
           onClose={() => setShowReport(false)}
           wide
           footer={
             <button className="btn" onClick={() => setShowReport(false)}>
-              إغلاق
+              {t("common.close")}
             </button>
           }
         >
           <div className="info-bar">
             <span>
-              عدد الطلبات قيد التحميل: <b>{report.labels.length}</b>
+              {t("activationSection.pendingRequestsCount")}{" "}
+              <b>{report.labels.length}</b>
             </span>
           </div>
           <Table
             columns={[
-              { title: "الطلب", key: "req_id" },
-              { title: "الاسم", key: "name" },
-              { title: "الإجمالي", key: "total" },
-              { title: "محمل", key: "activated" },
-              { title: "متبقٍ", key: "pending" },
+              { title: t("activationSection.request"), key: "req_id" },
+              { title: t("activationSection.name"), key: "name" },
+              { title: t("activationSection.total"), key: "total" },
+              { title: t("activationSection.loaded"), key: "activated" },
+              { title: t("activationSection.remaining"), key: "pending" },
             ]}
             rows={report.rows}
-            emptyText="لا توجد طلبات"
+            emptyText={t("activationSection.noRequests")}
           />
         </Modal>
       ) : null}

@@ -14,6 +14,7 @@ import {
 } from './config.js';
 import { TransactionLog } from './transactionLog.js';
 import { readJson, writeJson, ensureDir } from './store.js';
+import { t as defaultT } from './i18n.js';
 
 export function inferRequestSource(reqId) {
   if (typeof reqId === 'string' && /^C\d+$/.test(reqId)) return REQUEST_SOURCE_CUSTOMER;
@@ -43,20 +44,20 @@ export class FinancialRecord {
     this.updated_at = data.updated_at || now;
   }
 
-  deduct(amount) {
-    if (!(amount > 0)) return [false, 'مبلغ الخصم يجب أن يكون أكبر من صفر'];
+  deduct(amount, t = defaultT) {
+    if (!(amount > 0)) return [false, t('errors.amountMustBePositive')];
     if (amount > this.balance)
-      return [false, `الرصيد غير كافٍ. الرصيد الحالي: ${this.balance}`];
+      return [false, t('errors.insufficientBalance', { balance: this.balance })];
     this.balance -= amount;
     this.updated_at = new Date().toISOString();
-    return [true, `تم خصم ${amount} بنجاح. الرصيد المتبقي: ${this.balance}`];
+    return [true, t('financial.deducted', { amount, balance: this.balance })];
   }
 
-  addToBalance(amount) {
-    if (!(amount > 0)) return [false, 'المبلغ يجب أن يكون أكبر من صفر'];
+  addToBalance(amount, t = defaultT) {
+    if (!(amount > 0)) return [false, t('errors.amountMustBePositive')];
     this.balance += amount;
     this.updated_at = new Date().toISOString();
-    return [true, `تمت إضافة ${amount}. الرصيد الجديد: ${this.balance}`];
+    return [true, t('financial.added', { amount, balance: this.balance })];
   }
 
   toJSON() {
@@ -167,11 +168,11 @@ export class DataManager {
     return rec;
   }
 
-  deductFromRecord(recordId, amount) {
+  deductFromRecord(recordId, amount, t = defaultT) {
     const rec = this.records[recordId];
-    if (!rec) return [false, `السجل غير موجود: ${recordId}`];
+    if (!rec) return [false, t('errors.recordNotFound', { id: recordId })];
     const oldBalance = rec.balance;
-    const [success, message] = rec.deduct(amount);
+    const [success, message] = rec.deduct(amount, t);
     if (success) {
       this.saveData();
       this.log.logOperation(
@@ -182,11 +183,11 @@ export class DataManager {
     return [success, message];
   }
 
-  addToBalance(recordId, amount) {
+  addToBalance(recordId, amount, t = defaultT) {
     const rec = this.records[recordId];
-    if (!rec) return [false, `السجل غير موجود: ${recordId}`];
+    if (!rec) return [false, t('errors.recordNotFound', { id: recordId })];
     const oldBalance = rec.balance;
-    const [success, message] = rec.addToBalance(amount);
+    const [success, message] = rec.addToBalance(amount, t);
     if (success) {
       this.saveData();
       this.log.logOperation(
@@ -197,9 +198,9 @@ export class DataManager {
     return [success, message];
   }
 
-  updateRecordBalance(recordId, newBalance) {
+  updateRecordBalance(recordId, newBalance, t = defaultT) {
     const rec = this.records[recordId];
-    if (!rec) return [false, 'السجل غير موجود'];
+    if (!rec) return [false, t('errors.recordMissing')];
     const oldBalance = rec.balance;
     rec.balance = newBalance;
     rec.updated_at = new Date().toISOString();
@@ -208,16 +209,16 @@ export class DataManager {
       'update_balance',
       `تحديث رصيد [${rec.label}]: ${oldBalance} -> ${newBalance}`,
     );
-    return [true, `تم تحديث الرصيد إلى ${newBalance}`];
+    return [true, t('financial.balanceUpdated', { balance: newBalance })];
   }
 
-  deleteRecord(recordId) {
+  deleteRecord(recordId, t = defaultT) {
     const rec = this.records[recordId];
-    if (!rec) return [false, 'السجل غير موجود'];
+    if (!rec) return [false, t('errors.recordMissing')];
     delete this.records[recordId];
     this.saveData();
     this.log.logOperation('delete_record', `حذف سجل: ${rec.label}`);
-    return [true, `تم حذف السجل: ${rec.label}`];
+    return [true, t('financial.recordDeleted', { label: rec.label })];
   }
 
   createGroup(name, description = '') {
@@ -768,26 +769,40 @@ export class DataManager {
     this.saveCustomerDevices();
   }
 
-  getCustomerDeviceNames() {
+  getCustomerDeviceNames(source = REQUEST_SOURCE_ALL) {
     return Object.keys(this.customerDevices)
-      .filter((name) => (this.customerDevices[name] || []).length > 0)
+      .filter((name) => this._customerDevicesForSource(name, source).length > 0)
       .sort((a, b) => a.localeCompare(b, 'ar'));
   }
 
-  findCustomerDevicesByCarton(name, cartonNo) {
+  // Every device on record for `name`, optionally narrowed to only the
+  // ones that came from a وكيل (disbursement) request or a عميل (customer)
+  // request — inferred from the req_id that was stamped on each device
+  // when it was dispatched. A name can plausibly show up on both sides
+  // (an agent and a customer sharing a name isn't impossible), so this is
+  // what actually keeps المرتجع/العيب المصنعي from mixing the two up once
+  // the person picks which one they mean.
+  _customerDevicesForSource(name, source = REQUEST_SOURCE_ALL) {
+    const key = String(name || '').trim();
+    const list = this.customerDevices[key] || [];
+    if (!source || source === REQUEST_SOURCE_ALL) return list;
+    return list.filter((d) => inferRequestSource(d.req_id) === source);
+  }
+
+  findCustomerDevicesByCarton(name, cartonNo, source = REQUEST_SOURCE_ALL) {
     const key = String(name || '').trim();
     const val = String(cartonNo || '').trim();
     if (!key || !val) return [];
-    return (this.customerDevices[key] || []).filter(
+    return this._customerDevicesForSource(key, source).filter(
       (d) => String(d.CartonSerialNo || '').trim() === val,
     );
   }
 
-  findCustomerDeviceBySerial(name, serial) {
+  findCustomerDeviceBySerial(name, serial, source = REQUEST_SOURCE_ALL) {
     const key = String(name || '').trim();
     const val = String(serial || '').trim();
     if (!key || !val) return null;
-    const list = this.customerDevices[key] || [];
+    const list = this._customerDevicesForSource(key, source);
     return (
       list.find(
         (d) =>

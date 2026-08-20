@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import DetailSection from "../DetailSection.jsx";
 import SummarySection from "./SummarySection.jsx";
 import CartonImportSection from "./CartonImportSection.jsx";
@@ -75,12 +76,13 @@ export default function DevicesSection({
   // these must not replace/navigate away from the summary, it just
   // reveals more content below it.
   const [importPanel, setImportPanel] = useState(null);
+  const { t } = useTranslation();
 
   if (activeSection === "saved") {
     return (
       <DetailSection
         source="all"
-        title="الطلبات المحفوظة"
+        title={t("devicesSection.savedRequests")}
         sections={["header", "notes", "invoice", "shipment", "hand", "devices"]}
         hideFinancial
         highlight={selectedRequest?.req_id}

@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
+import i18n from "../i18n.jsx";
 import { api } from "../api.js";
 import { Card, Table, fmtTime } from "./ui.jsx";
 import { sortArabicFirst } from "../utils.js";
@@ -9,7 +11,8 @@ import ImagesModal from "./ImagesModal.jsx";
 // just backed by defect records instead of requests. No lookup/scan/submit
 // here — actually processing a defect return still only happens from the
 // الأجهزة tab.
-export default function DefectsPanel({ title = "العيب المصنعي" }) {
+export default function DefectsPanel({ title = i18n.t("defectsPanel.title") }) {
+  const { t } = useTranslation();
   const [defects, setDefects] = useState([]);
   const [selectedName, setSelectedName] = useState("");
   const [selectedId, setSelectedId] = useState("");
@@ -37,8 +40,9 @@ export default function DefectsPanel({ title = "العيب المصنعي" }) {
   }, [defects]);
 
   const filtered = useMemo(() => {
-    if (!selectedName) return defects;
-    return defects.filter((r) => r.name === selectedName);
+    const q = selectedName.trim().toLowerCase();
+    if (!q) return defects;
+    return defects.filter((r) => (r.name || "").toLowerCase().includes(q));
   }, [defects, selectedName]);
 
   const selected = useMemo(
@@ -48,53 +52,57 @@ export default function DefectsPanel({ title = "العيب المصنعي" }) {
 
   const deviceCols = [
     { title: "ID", key: "ID" },
-    { title: "الريسيفر", key: "DecoderSerialNo" },
-    { title: "الشريحة", key: "ChipSerialNo" },
-    { title: "البطاقة", key: "CardSerialNo" },
-    { title: "الموديل", key: "Model_name" },
+    { title: t("defectsPanel.receiver"), key: "DecoderSerialNo" },
+    { title: t("defectsPanel.chip"), key: "ChipSerialNo" },
+    { title: t("defectsPanel.card"), key: "CardSerialNo" },
+    { title: t("defectsPanel.model"), key: "Model_name" },
   ];
 
   return (
     <Card title={title}>
       <div className="form-row">
         <div className="field" style={{ flex: 1 }}>
-          <label>اختر الاسم</label>
-          <select
+          <label>{t("common.selectName")}</label>
+          <input
+            list="defects-panel-names"
             value={selectedName}
             onChange={(e) => {
               setSelectedName(e.target.value);
               setSelectedId("");
             }}
-          >
-            <option value="">كل الأسماء</option>
+            placeholder={t("common.typeToSearch")}
+          />
+          <datalist id="defects-panel-names">
             {names.map((n) => (
-              <option key={n} value={n}>
-                {n}
-              </option>
+              <option key={n} value={n} />
             ))}
-          </select>
+          </datalist>
         </div>
         <div className="field" style={{ flex: 2 }}>
-          <label>اختر عيباً مصنعياً</label>
+          <label>{t("defectsPanel.selectDefect")}</label>
           <select
             value={selectedId}
             onChange={(e) => setSelectedId(e.target.value)}
           >
-            <option value="">— اختر —</option>
+            <option value="">{t("common.select")}</option>
             {filtered.map((r) => (
               <option key={r.req_id} value={r.req_id}>
-                {r.req_id} - {r.name} ({(r.device_ids || []).length} جهاز)
+                {r.req_id} - {r.name} (
+                {t("defectsPanel.deviceCount", {
+                  count: (r.device_ids || []).length,
+                })}
+                )
               </option>
             ))}
           </select>
         </div>
         <button className="btn" onClick={() => load()}>
-          تحديث
+          {t("common.update")}
         </button>
       </div>
 
       {loading ? (
-        <div className="empty-hint">جاري التحميل...</div>
+        <div className="empty-hint">{t("common.loading")}</div>
       ) : selected ? (
         <>
           <div
@@ -102,20 +110,21 @@ export default function DefectsPanel({ title = "العيب المصنعي" }) {
             style={{ marginTop: 12, marginBottom: 12 }}
           >
             <div className="kv">
-              <b>رقم العيب المصنعي:</b> {selected.req_id}
+              <b>{t("defectsPanel.defectNumber")}:</b> {selected.req_id}
             </div>
             <div className="kv">
-              <b>الاسم:</b> {selected.name}
+              <b>{t("defectsPanel.name")}:</b> {selected.name}
             </div>
             <div className="kv">
-              <b>التاريخ:</b> {fmtTime(selected.created_at)}
+              <b>{t("defectsPanel.date")}:</b> {fmtTime(selected.created_at)}
             </div>
             <div className="kv">
-              <b>من الطلب:</b>{" "}
+              <b>{t("defectsPanel.fromRequest")}:</b>{" "}
               {(selected.source_requests || []).join("، ") || "—"}
             </div>
             <div className="kv">
-              <b>ملاحظات:</b> {selected.notes || "لا توجد ملاحظات"}
+              <b>{t("defectsPanel.notes")}:</b>{" "}
+              {selected.notes || t("defectsPanel.noNotes")}
             </div>
           </div>
           {selected.notes_image ? (
@@ -132,18 +141,18 @@ export default function DefectsPanel({ title = "العيب المصنعي" }) {
             columns={deviceCols}
             rows={selected.devices_data || []}
             rowKey={(r) => r.ID}
-            emptyText="لا توجد أجهزة"
+            emptyText={t("defectsPanel.noDevices")}
           />
         </>
       ) : (
         <div className="empty-hint" style={{ marginTop: 12 }}>
-          اختر عيباً مصنعياً لعرض تفاصيله
+          {t("defectsPanel.selectDefectHint")}
         </div>
       )}
 
       {view ? (
         <ImagesModal
-          title="صورة الملاحظات"
+          title={t("defectsPanel.notesImage")}
           urls={view}
           onClose={() => setView(null)}
         />

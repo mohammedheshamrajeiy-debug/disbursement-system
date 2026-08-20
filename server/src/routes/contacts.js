@@ -40,7 +40,7 @@ export function contactRoutes(dm) {
   router.delete('/', (req, res) => {
     const source = normalizeSource(req.query.source, REQUEST_SOURCE_DISBURSEMENT);
     const ok = dm.deleteContact(req.query.name || '', source);
-    if (!ok) return res.status(404).json({ error: 'لم يتم العثور على المستخدم' });
+    if (!ok) return res.status(404).json({ error: req.t('errors.contactNotFound') });
     res.json({ ok: true });
   });
 

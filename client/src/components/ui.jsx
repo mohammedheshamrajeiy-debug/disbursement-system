@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState } from "react";
+import i18n from "../i18n.jsx";
 
 export function Card({ title, children, className = "" }) {
   return (
@@ -23,7 +24,7 @@ export function Table({
   rows,
   onRowClick,
   selectedId,
-  emptyText = "لا توجد بيانات",
+  emptyText = i18n.t("common.noData"),
   rowKey = (r, i) => i,
   columnClass,
 }) {

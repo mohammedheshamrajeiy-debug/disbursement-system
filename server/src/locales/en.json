@@ -1,0 +1,65 @@
+{
+  "errors": {
+    "unauthorized": "Unauthorized - please log in",
+    "noPermission": "You do not have permission to perform this action",
+    "loginFailed": "Incorrect username or password",
+    "userNotFound": "User not found",
+    "unexpected": "An unexpected error occurred",
+    "internal": "Server error",
+    "contactNotFound": "Contact not found",
+    "requestNotFound": "Request not found",
+    "noCustomerDeviceData": "No device data found for this customer",
+    "noDeviceNumbersInTables": "No device numbers in the tables",
+    "alreadySavedAndDeducted": "Devices were saved and financial balance deducted previously for this request",
+    "returnNotFound": "Return record not found",
+    "defectNotFound": "Defect record not found",
+    "enterName": "Enter the beneficiary name",
+    "addDevice": "Add at least one device",
+    "noValidDevices": "No valid device was selected",
+    "noFileOrRows": "No file or data rows were sent",
+    "cartonNotFoundInStorage": "Carton not found in the source storage",
+    "noFile": "No file was sent",
+    "noDeviceNumbers": "No device numbers to save",
+    "devicesAlreadySaved": "These devices were already saved for this request",
+    "financialAlreadyDeducted": "Financial balance was already deducted for this request",
+    "noDevicesToDeduct": "No devices to deduct balance from - save the devices first",
+    "noDevicesToReturn": "No devices were selected to return",
+    "devicesNotInRequest": "The selected devices are not part of this request's devices",
+    "serialNotInRequest": "The number {{serial}} is not among the dispatched devices",
+    "amountMustBePositive": "The amount must be greater than zero",
+    "insufficientBalance": "Insufficient balance. Current balance: {{balance}}",
+    "recordNotFound": "Record not found: {{id}}",
+    "recordMissing": "Record not found"
+  },
+  "financial": {
+    "deducted": "Deducted {{amount}}. Remaining balance: {{balance}}",
+    "added": "Added {{amount}}. New balance: {{balance}}",
+    "balanceUpdated": "Balance updated to {{balance}}",
+    "recordDeleted": "Record deleted: {{label}}"
+  },
+  "summary": {
+    "devicesSaved_one": "Saved {{count}} device",
+    "devicesSaved_other": "Saved {{count}} devices",
+    "deductedFrom": "Deducted from {{storage}}: {{count}}",
+    "noStockDeduction": "No stock deduction",
+    "financialDeducted": "Deducted from financial balance: {{count}}",
+    "financialNoRecord": "No financial record: {{count}}",
+    "financialErrors": "Balance errors:",
+    "devicesReturned_one": "Returned {{count}} device to {{storage}}",
+    "devicesReturned_other": "Returned {{count}} devices to {{storage}}",
+    "items_one": "{{count}} device",
+    "items_other": "{{count}} devices",
+    "requestLabel_one": "{{reqId}} - {{name}} ({{count}} device)",
+    "requestLabel_other": "{{reqId}} - {{name}} ({{count}} devices)"
+  },
+  "display": {
+    "notAdded": "Not added yet"
+  },
+  "storage": {
+    "storage_1": "Storage 1",
+    "storage_2": "Storage 2",
+    "storage_customer": "Customer service storage",
+    "storage_return": "Return storage",
+    "storage_defect": "Manufacturing defect storage"
+  }
+}

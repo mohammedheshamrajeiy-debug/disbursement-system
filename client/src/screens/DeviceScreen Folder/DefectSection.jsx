@@ -1,12 +1,19 @@
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { api, uploadImages } from "../../api.js";
 import { Card, Modal, Table, useNotify, fmtTime } from "../../components/ui.jsx";
 import ImagesModal from "../../components/ImagesModal.jsx";
 
 export default function DefectSection() {
+  const { t } = useTranslation();
   const notify = useNotify();
   const [names, setNames] = useState([]);
   const [name, setName] = useState("");
+  // وكيل → طلب الصرف, عميل → طلب العميل. Everything below (names list,
+  // device lookups, replacement lookups) is scoped to whichever one is
+  // picked, so a وكيل defect can't accidentally pull in — or get confused
+  // with — a same-named عميل, and vice versa.
+  const [beneficiaryType, setBeneficiaryType] = useState("disbursement");
   const [code, setCode] = useState("");
   const [defectType, setDefectType] = useState("");
   const [replacementCode, setReplacementCode] = useState("");
@@ -31,17 +38,30 @@ export default function DefectSection() {
   // Every name that's ever appeared on a طلب صرف/عميل, plus anyone saved as
   // a contact — same list the name field on طلب الوكيل/طلب العميل uses, so
   // it's never empty just because no one has explicitly been "saved" as a
-  // contact yet.
+  // contact yet. Re-fetched whenever the وكيل/عميل toggle changes.
   useEffect(() => {
-    api("/requests/names?source=all")
+    api(`/requests/names?source=${beneficiaryType}`)
       .then((d) => setNames(d.names || []))
       .catch(() => {});
-  }, []);
+  }, [beneficiaryType]);
+
+  function switchBeneficiaryType(t) {
+    if (t === beneficiaryType) return;
+    setBeneficiaryType(t);
+    // Switching context — a name/device list scanned under وكيل means
+    // nothing once you're looking at عميل, so start clean rather than
+    // risk mixing the two in one submission.
+    setName("");
+    setMatches([]);
+    setUsedCodes(new Set());
+    setReplacementMatches([]);
+    setUsedReplacementCodes(new Set());
+  }
 
   function pickName(n) {
     setName(n);
     setShowNamesList(false);
-    notify(`تم اختيار: ${n}`);
+    notify(t("defectSection.nameSelected", { name: n }));
   }
 
   async function uploadNotesImage(files) {
@@ -55,15 +75,15 @@ export default function DefectSection() {
     setUsedCodes((prev) => new Set(prev).add(value));
 
     if (!newOnes.length) {
-      notify("⚠️ هذا الجهاز مضاف بالفعل", "error");
+      notify(t("defectSection.deviceAlreadyAdded"), "error");
       return;
     }
 
     setMatches((prev) => [...prev, ...newOnes]);
     notify(
       matched
-        ? `تمت إضافة ${newOnes.length} جهاز (${value})`
-        : `تمت إضافة الجهاز ${value}`,
+        ? t("defectSection.addedDevices", { count: newOnes.length, value })
+        : t("defectSection.addedDevice", { value }),
     );
   }
 
@@ -76,17 +96,21 @@ export default function DefectSection() {
     const value = raw.trim();
     if (!value) return;
     if (!name.trim()) {
-      notify("اكتب اسم المستفيد أولاً", "error");
+      notify(t("defectSection.typeBeneficiaryNameFirst"), "error");
       return;
     }
     if (usedCodes.has(value)) {
-      notify(`⚠️ تم إدخال "${value}" من قبل — لا يمكن تكراره`, "error");
+      notify(t("defectSection.codeAlreadyEntered", { value }), "error");
       return;
     }
 
     let items = [];
     try {
-      const q = new URLSearchParams({ name: name.trim(), carton: value });
+      const q = new URLSearchParams({
+        name: name.trim(),
+        carton: value,
+        source: beneficiaryType,
+      });
       const d = await api(`/defects/lookup?${q}`);
       items = d.items || [];
     } catch {
@@ -116,7 +140,7 @@ export default function DefectSection() {
       next.delete(id);
       return next;
     });
-    notify(`تمت إزالة ${id}`);
+    notify(t("defectSection.deviceRemoved", { id }));
   }
 
   // Shared by the scan input and the browse-picker modal: both end up with
@@ -126,12 +150,12 @@ export default function DefectSection() {
     const value = String(item.ID || "").trim();
     if (!value) return false;
     if (usedReplacementCodes.has(value)) {
-      if (!silent) notify(`⚠️ تم إدخال "${value}" من قبل — لا يمكن تكراره`, "error");
+      if (!silent) notify(t("defectSection.codeAlreadyEntered", { value }), "error");
       return false;
     }
     setUsedReplacementCodes((prev) => new Set(prev).add(value));
     setReplacementMatches((prev) => [...prev, item]);
-    if (!silent) notify(`تمت إضافة الجهاز البديل ${value}`);
+    if (!silent) notify(t("defectSection.replacementAdded", { value }));
     return true;
   }
 
@@ -139,11 +163,11 @@ export default function DefectSection() {
     const value = raw.trim();
     if (!value) return;
     if (!name.trim()) {
-      notify("اكتب اسم المستفيد أولاً", "error");
+      notify(t("defectSection.typeBeneficiaryNameFirst"), "error");
       return;
     }
     if (usedReplacementCodes.has(value)) {
-      notify(`⚠️ تم إدخال "${value}" من قبل — لا يمكن تكراره`, "error");
+      notify(t("defectSection.codeAlreadyEntered", { value }), "error");
       return;
     }
 
@@ -152,11 +176,11 @@ export default function DefectSection() {
     try {
       d = await api(`/defects/replacement-lookup?${q}`);
     } catch (e) {
-      notify(e.message || "تعذر البحث عن الجهاز", "error");
+      notify(e.message || t("defectSection.lookupFailed"), "error");
       return;
     }
     if (!d.item) {
-      notify("⚠️ لم يتم العثور على هذا الجهاز في مخزن خدمة العملاء", "error");
+      notify(t("defectSection.deviceNotFoundCustomerStore"), "error");
       return;
     }
 
@@ -177,12 +201,12 @@ export default function DefectSection() {
       next.delete(id);
       return next;
     });
-    notify(`تمت إزالة ${id}`);
+    notify(t("defectSection.deviceRemoved", { id }));
   }
 
   async function submitDefect() {
-    if (!name.trim()) return notify("اكتب اسم المستفيد", "error");
-    if (!matches.length) return notify("أضف جهازاً واحداً على الأقل", "error");
+    if (!name.trim()) return notify(t("defectSection.typeBeneficiaryName"), "error");
+    if (!matches.length) return notify(t("defectSection.addAtLeastOneDevice"), "error");
     setBusy(true);
     try {
       const d = await api("/defects", {
@@ -194,16 +218,23 @@ export default function DefectSection() {
           defect_type: defectType.trim(),
           devices: matches,
           replacements: replacementMatches,
+          source: beneficiaryType,
         },
       });
 
       notify(
-        `تم إنشاء عيب مصنعي ${d.defect_req_id} — ${d.returned} جهاز إلى ${d.storage_label}` +
+        t("defectSection.created", {
+          count: d.returned,
+          reqId: d.defect_req_id,
+          storage: t("storage.storage_defect"),
+        }) +
           (d.replaced
-            ? ` — تم استبدال ${d.replaced} جهاز من مخزن خدمة العملاء`
+            ? t("defectSection.replaced", { count: d.replaced })
             : "") +
           (d.affected_requests && d.affected_requests.length
-            ? ` (من الطلب: ${d.affected_requests.join("، ")})`
+            ? t("defectSection.createdFromRequests", {
+                requests: d.affected_requests.join("، "),
+              })
             : ""),
       );
       setLastResult(d);
@@ -217,7 +248,7 @@ export default function DefectSection() {
       setNotes("");
       setNotesImage("");
     } catch (e) {
-      notify(e.message || "تعذر إتمام تسجيل العيب المصنعي", "error");
+      notify(e.message || t("defectSection.failedToComplete"), "error");
     } finally {
       setBusy(false);
     }
@@ -227,26 +258,49 @@ export default function DefectSection() {
   const [viewDefect, setViewDefect] = useState(null);
 
   return (
-    <Card title="العيب المصنعي">
+    <Card title={t("defectSection.title")}>
       {lastResult ? (
         <div className="empty-hint" style={{ marginBottom: 8, fontWeight: 600 }}>
-          آخر عيب مصنعي: <b>{lastResult.defect_req_id}</b> — {lastResult.returned}{" "}
-          جهاز
+          {t("defectSection.lastDefect", {
+            count: lastResult.returned,
+            reqId: lastResult.defect_req_id,
+          })}
           {lastResult.affected_requests && lastResult.affected_requests.length
-            ? ` (من الطلب: ${lastResult.affected_requests.join("، ")})`
+            ? t("defectSection.createdFromRequests", {
+                requests: lastResult.affected_requests.join("، "),
+              })
             : ""}
         </div>
       ) : null}
 
       <div className="form-grid">
         <div className="field">
-          <label>1 — اسم المستفيد</label>
+          <label>{t("defectSection.beneficiaryType")}</label>
+          <div className="form-row" style={{ gap: 6 }}>
+            <button
+              type="button"
+              className={`btn btn-sm ${beneficiaryType === "disbursement" ? "btn-primary" : ""}`}
+              onClick={() => switchBeneficiaryType("disbursement")}
+            >
+              {t("defectSection.agent")}
+            </button>
+            <button
+              type="button"
+              className={`btn btn-sm ${beneficiaryType === "customer" ? "btn-primary" : ""}`}
+              onClick={() => switchBeneficiaryType("customer")}
+            >
+              {t("defectSection.customer")}
+            </button>
+          </div>
+        </div>
+        <div className="field">
+          <label>{t("defectSection.beneficiaryName")}</label>
           <div className="form-row" style={{ gap: 6 }}>
             <input
               list="defect-names-list"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="اكتب الاسم أو اختر من القائمة"
+              placeholder={t("defectSection.namePlaceholder")}
             />
             <datalist id="defect-names-list">
               {names.map((n, i) => (
@@ -258,7 +312,7 @@ export default function DefectSection() {
               className="btn btn-sm"
               onClick={() => setShowNamesList(true)}
             >
-              القائمة
+              {t("defectSection.list")}
             </button>
           </div>
         </div>
@@ -266,7 +320,7 @@ export default function DefectSection() {
 
       <div className="form-row" style={{ marginTop: 12 }}>
         <div className="field">
-          <label>ملاحظات</label>
+          <label>{t("defectSection.notes")}</label>
           <textarea
             rows={4}
             value={notes}
@@ -274,7 +328,7 @@ export default function DefectSection() {
           />
         </div>
         <div className="field">
-          <label>صورة الملاحظات</label>
+          <label>{t("defectSection.notesImage")}</label>
           <input
             type="file"
             accept="image/*,.pdf"
@@ -295,7 +349,7 @@ export default function DefectSection() {
 
       <div className="form-grid" style={{ marginTop: 12 }}>
         <div className="field">
-          <label>2 — امسح أو اكتب رقم الجهاز</label>
+          <label>{t("defectSection.scanDeviceLabel")}</label>
           <div className="form-row" style={{ gap: 6 }}>
             <input
               ref={codeRef}
@@ -303,44 +357,44 @@ export default function DefectSection() {
               value={code}
               onChange={(e) => setCode(e.target.value)}
               onKeyDown={handleCodeKeyDown}
-              placeholder="امسح بالسكانر ثم Enter، أو اكتب الرقم واضغط إضافة"
+              placeholder={t("defectSection.scanPlaceholder")}
             />
             <button type="button" className="btn" onClick={() => addCode(code)}>
-              إضافة
+              {t("common.add")}
             </button>
           </div>
         </div>
         <div className="field" style={{ gridColumn: "1 / -1" }}>
-          <label>نوع العطل</label>
+          <label>{t("defectSection.defectType")}</label>
           <input
             type="text"
             value={defectType}
             onChange={(e) => setDefectType(e.target.value)}
-            placeholder="اكتب نوع العطل"
+            placeholder={t("defectSection.defectTypePlaceholder")}
           />
         </div>
         <div className="field">
-          <label>3 — امسح الجهاز البديل (من مخزن خدمة العملاء)</label>
+          <label>{t("defectSection.replacementLabel")}</label>
           <div className="form-row" style={{ gap: 6 }}>
             <input
               value={replacementCode}
               onChange={(e) => setReplacementCode(e.target.value)}
               onKeyDown={handleReplacementKeyDown}
-              placeholder="امسح بالسكانر ثم Enter، أو اكتب الرقم واضغط إضافة"
+              placeholder={t("defectSection.scanPlaceholder")}
             />
             <button
               type="button"
               className="btn"
               onClick={() => addReplacement(replacementCode)}
             >
-              إضافة
+              {t("common.add")}
             </button>
             <button
               type="button"
               className="btn btn-sm"
               onClick={() => setShowReplacementPicker(true)}
             >
-              اختيار من المخزن
+              {t("defectSection.chooseFromStorage")}
             </button>
           </div>
         </div>
@@ -348,7 +402,7 @@ export default function DefectSection() {
 
       <div className="form-row" style={{ marginTop: 12 }}>
         <button className="btn btn-sm" onClick={() => setShowLog(true)}>
-          سجل طلبات العيب المصنعي
+          {t("defectSection.defectRequestsLog")}
         </button>
         {matches.length ? (
           <button
@@ -358,24 +412,26 @@ export default function DefectSection() {
               setUsedCodes(new Set());
             }}
           >
-            مسح القائمة
+            {t("defectSection.clearList")}
           </button>
         ) : null}
       </div>
 
       {matches.length ? (
         <>
-          <h4 style={{ marginTop: 14 }}>الأجهزة المضافة ({matches.length})</h4>
+          <h4 style={{ marginTop: 14 }}>
+            {t("defectSection.addedDevicesCount", { count: matches.length })}
+          </h4>
           <div className="table-wrap" style={{ marginTop: 8 }}>
             <table className="grid">
               <thead>
                 <tr>
                   <th>ID</th>
-                  <th>رقم الطلب</th>
-                  <th>الريسيفر</th>
-                  <th>الشريحة</th>
-                  <th>البطاقة</th>
-                  <th>الموديل</th>
+                  <th>{t("defectSection.requestNo")}</th>
+                  <th>{t("defectSection.receiver")}</th>
+                  <th>{t("defectSection.chip")}</th>
+                  <th>{t("defectSection.card")}</th>
+                  <th>{t("defectSection.model")}</th>
                   <th></th>
                 </tr>
               </thead>
@@ -393,7 +449,7 @@ export default function DefectSection() {
                         className="btn btn-danger btn-sm"
                         onClick={() => removeMatch(m.ID)}
                       >
-                        حذف
+                        {t("common.delete")}
                       </button>
                     </td>
                   </tr>
@@ -404,24 +460,26 @@ export default function DefectSection() {
         </>
       ) : (
         <div className="empty-hint" style={{ marginTop: 12 }}>
-          اكتب اسم المستفيد ثم امسح أو اكتب رقم الجهاز لإضافته
+          {t("defectSection.emptyHint")}
         </div>
       )}
 
       {replacementMatches.length ? (
         <>
           <h4 style={{ marginTop: 14 }}>
-            الأجهزة البديلة ({replacementMatches.length})
+            {t("defectSection.replacementDevicesCount", {
+              count: replacementMatches.length,
+            })}
           </h4>
           <div className="table-wrap" style={{ marginTop: 8 }}>
             <table className="grid">
               <thead>
                 <tr>
                   <th>ID</th>
-                  <th>الريسيفر</th>
-                  <th>الشريحة</th>
-                  <th>البطاقة</th>
-                  <th>الموديل</th>
+                  <th>{t("defectSection.receiver")}</th>
+                  <th>{t("defectSection.chip")}</th>
+                  <th>{t("defectSection.card")}</th>
+                  <th>{t("defectSection.model")}</th>
                   <th></th>
                 </tr>
               </thead>
@@ -438,7 +496,7 @@ export default function DefectSection() {
                         className="btn btn-danger btn-sm"
                         onClick={() => removeReplacement(m.ID)}
                       >
-                        حذف
+                        {t("common.delete")}
                       </button>
                     </td>
                   </tr>
@@ -452,7 +510,7 @@ export default function DefectSection() {
       {matches.length ? (
         <div className="form-row" style={{ marginTop: 10 }}>
           <button className="btn btn-primary" disabled={busy} onClick={submitDefect}>
-            {busy ? "جاري التسجيل..." : "تسجيل العيب المصنعي إلى مخزن العيب المصنعي"}
+            {busy ? t("defectSection.registering") : t("defectSection.registerDefect")}
           </button>
         </div>
       ) : null}
@@ -476,7 +534,7 @@ export default function DefectSection() {
 
       {notesView ? (
         <ImagesModal
-          title="صورة الملاحظات"
+          title={t("defectSection.notesImage")}
           urls={notesView}
           onClose={() => setNotesView(null)}
         />
@@ -492,18 +550,18 @@ export default function DefectSection() {
 
       {showNamesList ? (
         <Modal
-          title="قائمة المستفيدين"
+          title={t("defectSection.beneficiariesList")}
           onClose={() => setShowNamesList(false)}
           wide
           footer={
             <button className="btn" onClick={() => setShowNamesList(false)}>
-              إغلاق
+              {t("common.close")}
             </button>
           }
         >
           <Table
             columns={[
-              { title: "الاسم", render: (n) => n },
+              { title: t("defectSection.name"), render: (n) => n },
               {
                 title: "",
                 render: (n) => (
@@ -511,14 +569,14 @@ export default function DefectSection() {
                     className="btn btn-sm btn-primary"
                     onClick={() => pickName(n)}
                   >
-                    اختيار
+                    {t("defectSection.choose")}
                   </button>
                 ),
               },
             ]}
             rows={names}
             rowKey={(n) => n}
-            emptyText="لا توجد بيانات"
+            emptyText={t("common.noData")}
           />
         </Modal>
       ) : null}
@@ -527,6 +585,7 @@ export default function DefectSection() {
 }
 
 function DefectRequestsLogModal({ onClose, onOpen }) {
+  const { t } = useTranslation();
   const [rows, setRows] = useState([]);
   useEffect(() => {
     api("/defects/requests")
@@ -535,20 +594,23 @@ function DefectRequestsLogModal({ onClose, onOpen }) {
   }, []);
 
   const cols = [
-    { title: "الرقم", key: "req_id" },
-    { title: "الاسم", key: "name" },
-    { title: "التاريخ", render: (r) => fmtTime(r.created_at) },
-    { title: "عدد الأجهزة", render: (r) => (r.device_ids || []).length },
+    { title: t("defectSection.no"), key: "req_id" },
+    { title: t("defectSection.name"), key: "name" },
+    { title: t("defectSection.date"), render: (r) => fmtTime(r.created_at) },
     {
-      title: "من الطلب",
+      title: t("defectSection.deviceCount"),
+      render: (r) => (r.device_ids || []).length,
+    },
+    {
+      title: t("defectSection.fromRequests"),
       render: (r) => (r.source_requests || []).join("، ") || "—",
     },
-    { title: "ملاحظات", render: (r) => r.notes || "—" },
+    { title: t("defectSection.notes"), render: (r) => r.notes || "—" },
     {
       title: "",
       render: (r) => (
         <button className="btn btn-sm btn-primary" onClick={() => onOpen(r)}>
-          عرض
+          {t("common.show")}
         </button>
       ),
     },
@@ -556,21 +618,22 @@ function DefectRequestsLogModal({ onClose, onOpen }) {
 
   return (
     <Modal
-      title="سجل طلبات العيب المصنعي"
+      title={t("defectSection.defectRequestsLog")}
       onClose={onClose}
       wide
       footer={
         <button className="btn" onClick={onClose}>
-          إغلاق
+          {t("common.close")}
         </button>
       }
     >
-      <Table columns={cols} rows={rows} emptyText="لا توجد طلبات عيب مصنعي" />
+      <Table columns={cols} rows={rows} emptyText={t("defectSection.noDefectRequests")} />
     </Modal>
   );
 }
 
 function ReplacementPickerModal({ onClose, usedCodes, onPick }) {
+  const { t } = useTranslation();
   const notify = useNotify();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -579,7 +642,7 @@ function ReplacementPickerModal({ onClose, usedCodes, onPick }) {
   useEffect(() => {
     api("/inventory/customer-items")
       .then((d) => setItems(d.items || []))
-      .catch((e) => notify(e.message || "تعذر تحميل مخزن خدمة العملاء", "error"))
+      .catch((e) => notify(e.message || t("defectSection.customerStoreLoadFailed"), "error"))
       .finally(() => setLoading(false));
   }, []);
 
@@ -592,10 +655,10 @@ function ReplacementPickerModal({ onClose, usedCodes, onPick }) {
 
   const cols = [
     { title: "ID", key: "ID" },
-    { title: "الريسيفر", key: "DecoderSerialNo" },
-    { title: "الشريحة", key: "ChipSerialNo" },
-    { title: "البطاقة", key: "CardSerialNo" },
-    { title: "الموديل", key: "Model_name" },
+    { title: t("defectSection.receiver"), key: "DecoderSerialNo" },
+    { title: t("defectSection.chip"), key: "ChipSerialNo" },
+    { title: t("defectSection.card"), key: "CardSerialNo" },
+    { title: t("defectSection.model"), key: "Model_name" },
     {
       title: "",
       render: (it) => {
@@ -606,7 +669,7 @@ function ReplacementPickerModal({ onClose, usedCodes, onPick }) {
             disabled={already}
             onClick={() => onPick(it)}
           >
-            {already ? "مُضاف" : "اختيار"}
+            {already ? t("defectSection.added") : t("defectSection.choose")}
           </button>
         );
       },
@@ -615,12 +678,12 @@ function ReplacementPickerModal({ onClose, usedCodes, onPick }) {
 
   return (
     <Modal
-      title={`اختيار جهاز بديل من مخزن خدمة العملاء (${items.length})`}
+      title={t("defectSection.pickReplacementTitle", { count: items.length })}
       onClose={onClose}
       wide
       footer={
         <button className="btn" onClick={onClose}>
-          إغلاق
+          {t("common.close")}
         </button>
       }
     >
@@ -629,57 +692,78 @@ function ReplacementPickerModal({ onClose, usedCodes, onPick }) {
           autoFocus
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="ابحث بالرقم أو الريسيفر أو الشريحة أو البطاقة أو الموديل"
+          placeholder={t("defectSection.searchPlaceholder")}
         />
       </div>
       {loading ? (
-        <div className="empty-hint">جاري التحميل...</div>
+        <div className="empty-hint">{t("common.loading")}</div>
       ) : (
         <Table
           columns={cols}
           rows={filtered}
           rowKey={(r) => r.ID}
-          emptyText="لا توجد أجهزة في مخزن خدمة العملاء"
+          emptyText={t("defectSection.noDevicesCustomerStore")}
         />
       )}
     </Modal>
   );
 }
 function DefectRequestDetailModal({ record, onClose }) {
+  const { t } = useTranslation();
   const [view, setView] = useState(null);
+  // Same shape as مخزن العيب المصنعي in المخزون: row number instead of the
+  // scanned ID (it's not a meaningful sequence here), plus الكرتونة, نوع
+  // العطل and اسم العميل instead of الشريحة/البطاقة/الموديل, so a device
+  // looks the same whether you're looking at it from the storage screen
+  // or from this request's own detail view.
   const cols = [
+    { title: "ID", key: "ID", render: (r, i) => i + 1 },
+    { title: t("defectSection.carton"), key: "CartonSerialNo" },
+    { title: t("defectSection.receiver"), key: "DecoderSerialNo" },
+    { title: t("defectSection.defectType"), key: "DefectType" },
+    { title: t("defectSection.customerName"), key: "CustomerName" },
+  ];
+  // Replacement devices are still-working stock pulled from مخزن خدمة
+  // العملاء, not defective ones — so they keep the normal serial/model
+  // columns instead of الكرتونة/نوع العطل.
+  const replacementCols = [
     { title: "ID", key: "ID" },
-    { title: "الريسيفر", key: "DecoderSerialNo" },
-    { title: "الشريحة", key: "ChipSerialNo" },
-    { title: "البطاقة", key: "CardSerialNo" },
-    { title: "الموديل", key: "Model_name" },
+    { title: t("defectSection.receiver"), key: "DecoderSerialNo" },
+    { title: t("defectSection.chip"), key: "ChipSerialNo" },
+    { title: t("defectSection.card"), key: "CardSerialNo" },
+    { title: t("defectSection.model"), key: "Model_name" },
   ];
   return (
     <Modal
-      title={`عيب مصنعي ${record.req_id}`}
+      title={t("defectSection.defectRecord", { id: record.req_id })}
       onClose={onClose}
       wide
       footer={
         <button className="btn" onClick={onClose}>
-          إغلاق
+          {t("common.close")}
         </button>
       }
     >
       <div className="details-grid" style={{ marginBottom: 12 }}>
         <div className="kv">
-          <b>رقم العيب المصنعي:</b> {record.req_id}
+          <b>{t("defectSection.defectNo")}:</b> {record.req_id}
         </div>
         <div className="kv">
-          <b>الاسم:</b> {record.name}
+          <b>{t("defectSection.name")}:</b> {record.name}
         </div>
         <div className="kv">
-          <b>التاريخ:</b> {fmtTime(record.created_at)}
+          <b>{t("defectSection.type")}:</b> {record.beneficiary_type || "—"}
         </div>
         <div className="kv">
-          <b>من الطلب:</b> {(record.source_requests || []).join("، ") || "—"}
+          <b>{t("defectSection.date")}:</b> {fmtTime(record.created_at)}
         </div>
         <div className="kv">
-          <b>ملاحظات:</b> {record.notes || "لا توجد ملاحظات"}
+          <b>{t("defectSection.fromRequests")}:</b>{" "}
+          {(record.source_requests || []).join("، ") || "—"}
+        </div>
+        <div className="kv">
+          <b>{t("defectSection.notes")}:</b>{" "}
+          {record.notes || t("defectSection.noNotes")}
         </div>
       </div>
       {record.notes_image ? (
@@ -696,24 +780,26 @@ function DefectRequestDetailModal({ record, onClose }) {
         columns={cols}
         rows={record.devices_data || []}
         rowKey={(r) => r.ID}
-        emptyText="لا توجد أجهزة"
+        emptyText={t("defectSection.noDevices")}
       />
       {record.replacements_data && record.replacements_data.length ? (
         <>
           <h4 style={{ marginTop: 14 }}>
-            الأجهزة البديلة ({record.replacements_data.length})
+            {t("defectSection.replacementDevicesCount", {
+              count: record.replacements_data.length,
+            })}
           </h4>
           <Table
-            columns={cols}
+            columns={replacementCols}
             rows={record.replacements_data}
             rowKey={(r) => r.ID}
-            emptyText="لا توجد أجهزة بديلة"
+            emptyText={t("defectSection.noReplacementDevices")}
           />
         </>
       ) : null}
       {view ? (
         <ImagesModal
-          title="صورة الملاحظات"
+          title={t("defectSection.notesImage")}
           urls={view}
           onClose={() => setView(null)}
         />

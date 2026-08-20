@@ -12,6 +12,7 @@ import {
   DEVICE_TREE_FIELD_MAP,
 } from '../config.js';
 import { inferRequestSource } from '../dataManager.js';
+import { t as defaultT } from '../i18n.js';
 
 export function parseReqId(raw) {
   if (!raw) return '';
@@ -95,7 +96,7 @@ export function treeValuesToDevice(vals) {
   return device;
 }
 
-export function getRequestDisplayData(reqId, req) {
+export function getRequestDisplayData(reqId, req, t = defaultT) {
   const items = req.items || [];
   const total = items.reduce((s, it) => s + (it.count || 0), 0);
   const invoiceNumber = getInvoiceNumber(req);
@@ -111,13 +112,13 @@ export function getRequestDisplayData(reqId, req) {
     items: items,
     notes: req.notes || '',
     notes_image: req.notes_image || '',
-    invoice_number: invoiceNumber || 'غير مضافة بعد',
+    invoice_number: invoiceNumber || t('display.notAdded'),
     invoice_date: req.invoice_date || '',
     invoice_amount: req.invoice_amount || '',
     sale_order: req.sale_order || '',
     invoice_images: collectInvoiceImages(req),
     accountant_invoice_image: req.accountant_invoice_image || '',
-    shipment_id: shipmentId || 'غير مضافة بعد',
+    shipment_id: shipmentId || t('display.notAdded'),
     shipment_carrier: req.shipment_carrier || '',
     shipment_date: req.shipment_date || '',
     shipment_images: collectShipmentImages(req),
@@ -128,7 +129,7 @@ export function getRequestDisplayData(reqId, req) {
     device_serials: collectDeviceSerials(req),
     devices_data: collectDevicesData(req),
     returns: req.returns || [],
-    items_summary: `${total} جهاز`,
+    items_summary: t('summary.items', { count: total }),
     items_count: items.length,
     total_count: total,
     financial_deducted: !!req.financial_deducted,
@@ -136,10 +137,10 @@ export function getRequestDisplayData(reqId, req) {
   };
 }
 
-export function formatRequestLabel(reqId, req) {
+export function formatRequestLabel(reqId, req, t = defaultT) {
   const items = req.items || [];
   const total = items.reduce((s, it) => s + (it.count || 0), 0);
-  return `${reqId} - ${req.name || ''} (${total} جهاز)`;
+  return t('summary.requestLabel', { reqId, name: req.name || '', count: total });
 }
 
 export function isInvoiceComplete(req) {
@@ -194,29 +195,29 @@ export class RequestService {
     return `C${String(maxNum + 1).padStart(5, '0')}`;
   }
 
-  listRequestLabels(source = REQUEST_SOURCE_ALL) {
-    return this.dm.iterRequests(source).map(([rid, req]) => formatRequestLabel(rid, req));
+  listRequestLabels(source = REQUEST_SOURCE_ALL, t = defaultT) {
+    return this.dm.iterRequests(source).map(([rid, req]) => formatRequestLabel(rid, req, t));
   }
 
-  listLabelsForWorkflow(stage = null, source = REQUEST_SOURCE_ALL) {
-    if (!stage) return this.listRequestLabels(source);
+  listLabelsForWorkflow(stage = null, source = REQUEST_SOURCE_ALL, t = defaultT) {
+    if (!stage) return this.listRequestLabels(source, t);
     const completeFn = WORKFLOW_COMPLETE_CHECKS[stage];
-    if (!completeFn) return this.listRequestLabels(source);
+    if (!completeFn) return this.listRequestLabels(source, t);
     return this.dm
       .iterRequests(source)
       .filter(([, req]) => !completeFn(req))
-      .map(([rid, req]) => formatRequestLabel(rid, req));
+      .map(([rid, req]) => formatRequestLabel(rid, req, t));
   }
 
   // Inverse of listLabelsForWorkflow: requests that already finished a given
   // stage, so they can be pulled up again and edited/corrected.
-  listLabelsForEditing(stage = null, source = REQUEST_SOURCE_ALL) {
+  listLabelsForEditing(stage = null, source = REQUEST_SOURCE_ALL, t = defaultT) {
     const completeFn = WORKFLOW_COMPLETE_CHECKS[stage];
     if (!completeFn) return [];
     return this.dm
       .iterRequests(source)
       .filter(([, req]) => completeFn(req))
-      .map(([rid, req]) => formatRequestLabel(rid, req));
+      .map(([rid, req]) => formatRequestLabel(rid, req, t));
   }
 
   getRequest(rawId, source = REQUEST_SOURCE_ALL) {
@@ -267,9 +268,9 @@ export class RequestService {
     return reqId;
   }
 
-  updateRequestDevices(reqId, devicesData, devicesSerials) {
+  updateRequestDevices(reqId, devicesData, devicesSerials, t = defaultT) {
     const found = this.dm.findRequest(reqId);
-    if (!found) throw new Error('طلب الصرف غير موجود');
+    if (!found) throw new Error(t('errors.requestNotFound'));
     const req = found[1];
     req.devices_data = [...(req.devices_data || []), ...devicesData];
     req.devices_serials = devicesSerials;

@@ -1,29 +1,31 @@
 import { Card } from "../components/ui.jsx";
+import { useTranslation } from "react-i18next";
 
 export default function InvoiceRequestSection({ current }) {
+  const { t } = useTranslation();
   return (
-    <Card title="بيانات الطلب">
+    <Card title={t("invoiceRequest.title")}>
       {current ? (
         <div className="info-bar">
           <span>
-            الطلب: <b>{current.req_id || current.request_id}</b>
+            {t("invoiceRequest.requestLabel")} <b>{current.req_id || current.request_id}</b>
           </span>
           <span>
-            الاسم: <b>{current.name}</b>
+            {t("invoiceRequest.nameLabel")} <b>{current.name}</b>
           </span>
           <span>
-            الحالة:{" "}
+            {t("invoiceRequest.statusLabel")}{" "}
             <b>{current.display ? current.display.status : current.status}</b>
           </span>
           <span>
-            المبلغ: <b>{current.amount || "—"}</b>
+            {t("invoiceRequest.amountLabel")} <b>{current.amount || "—"}</b>
           </span>
           <span>
-            أمر البيع: <b>{current.sale_order || "—"}</b>
+            {t("invoiceRequest.saleOrderLabel")} <b>{current.sale_order || "—"}</b>
           </span>
         </div>
       ) : (
-        <div className="empty-hint">اختر طلباً لعرض بياناته</div>
+        <div className="empty-hint">{t("invoiceRequest.emptyHint")}</div>
       )}
     </Card>
   );

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { api, uploadImages } from "../api.js";
 import {
   Card,
@@ -16,6 +17,7 @@ import { useNav } from "../App.jsx";
 import { sortArabicFirst } from "../utils.js";
 
 export default function RequestFormScreen({ source, typeLabel }) {
+  const { t } = useTranslation();
   const isCustomer = source === "customer";
   const notify = useNotify();
   const { setSelectedRequest } = useNav() || {};
@@ -62,7 +64,7 @@ export default function RequestFormScreen({ source, typeLabel }) {
   }, [source]);
 
   async function fetchHistory() {
-    if (!name.trim()) return notify("أدخل اسم المستفيد أولاً", "error");
+    if (!name.trim()) return notify(t("requestForm.enterNameFirst"), "error");
     const q = new URLSearchParams({ source, name: name.trim() });
     const data = await api(`/requests/history?${q}`);
     setHistory(data.history);
@@ -87,7 +89,7 @@ export default function RequestFormScreen({ source, typeLabel }) {
   }
 
   async function saveRequest() {
-    if (!name.trim()) return notify("أدخل اسم المستفيد", "error");
+    if (!name.trim()) return notify(t("requestForm.enterName"), "error");
     const cleanItems = items
       .map((it) => ({
         device_type: it.device_type,
@@ -96,7 +98,7 @@ export default function RequestFormScreen({ source, typeLabel }) {
       }))
       .filter((it) => it.device_type && it.count !== "");
     if (!cleanItems.length)
-      return notify("أدخل صنفاً واحداً على الأقل (النوع والكمية)", "error");
+      return notify(t("requestForm.enterItem"), "error");
 
     const data = await api("/requests", {
       method: "POST",
@@ -112,7 +114,7 @@ export default function RequestFormScreen({ source, typeLabel }) {
         items: cleanItems,
       },
     });
-    notify(`تم حفظ الطلب ${data.req_id} بنجاح`);
+    notify(t("requestForm.savedSuccess", { id: data.req_id }));
     setSaved(data.req);
     setSelectedRequest?.({ req_id: data.req_id });
     setName("");
@@ -127,7 +129,7 @@ export default function RequestFormScreen({ source, typeLabel }) {
   }
 
   async function saveContact() {
-    if (!name.trim()) return notify("أدخل اسم المستفيد أولاً", "error");
+    if (!name.trim()) return notify(t("requestForm.enterNameFirst"), "error");
     await api("/contacts", {
       method: "POST",
       body: {
@@ -139,13 +141,17 @@ export default function RequestFormScreen({ source, typeLabel }) {
         beneficiary_type: btype,
       },
     });
-    notify("تم حفظ بيانات المستفيد");
+    notify(t("requestForm.contactSaved"));
     loadContacts();
   }
 
   async function deleteContact() {
-    if (!name.trim()) return notify("أدخل اسم المستفيد أولاً", "error");
-    if (!window.confirm(`هل تريد حذف "${name.trim()}" من قائمة المستفيدين؟`))
+    if (!name.trim()) return notify(t("requestForm.enterNameFirst"), "error");
+    if (
+      !window.confirm(
+        t("requestForm.deleteConfirm", { name: name.trim() }),
+      )
+    )
       return;
     await api(
       `/contacts?source=${source}&name=${encodeURIComponent(name.trim())}`,
@@ -153,7 +159,7 @@ export default function RequestFormScreen({ source, typeLabel }) {
         method: "DELETE",
       },
     );
-    notify("تم الحذف");
+    notify(t("requestForm.deleted"));
     loadNames();
   }
 
@@ -168,7 +174,7 @@ export default function RequestFormScreen({ source, typeLabel }) {
   function pickFromContacts(contact) {
     fillFromContact(contact);
     setShowContacts(false);
-    notify(`تم اختيار: ${contact.name}`);
+    notify(t("requestForm.selected", { name: contact.name }));
   }
 
   function handleNameChange(value) {
@@ -200,17 +206,17 @@ export default function RequestFormScreen({ source, typeLabel }) {
 
   const itemsColumns = [
     {
-      title: "نوع الجهاز",
+      title: t("requestForm.deviceType"),
       render: (r, i) => (
         <input
           value={r.device_type}
           onChange={(e) => setItem(i, "device_type", e.target.value)}
-          placeholder="مثال: شاشة"
+          placeholder={t("requestForm.exampleScreen")}
         />
       ),
     },
     {
-      title: "الكمية",
+      title: t("requestForm.quantity"),
       render: (r, i) => (
         <input
           style={{ width: 80 }}
@@ -221,12 +227,12 @@ export default function RequestFormScreen({ source, typeLabel }) {
       ),
     },
     {
-      title: "الوصف",
+      title: t("requestForm.description"),
       render: (r, i) => (
         <input
           value={r.description}
           onChange={(e) => setItem(i, "description", e.target.value)}
-          placeholder="اختياري"
+          placeholder={t("common.optional")}
         />
       ),
     },
@@ -234,32 +240,34 @@ export default function RequestFormScreen({ source, typeLabel }) {
       title: "",
       render: (_r, i) => (
         <button className="btn btn-danger btn-sm" onClick={() => delItem(i)}>
-          حذف
+          {t("common.delete")}
         </button>
       ),
     },
   ];
 
-  const sectionTitle = isCustomer ? "طلب العميل" : "طلب الوكيل";
+  const sectionTitle = isCustomer
+    ? t("requestForm.customerRequest")
+    : t("requestForm.agentRequest");
   const drawerItems = [
     { key: "agent", label: sectionTitle },
-    { key: "saved", label: "الطلبات المحفوظة" },
-    { key: "return", label: "المرتجع" },
-    { key: "defect", label: "العيب المصنعي" },
+    { key: "saved", label: t("requestForm.savedRequests") },
+    { key: "return", label: t("requestForm.return") },
+    { key: "defect", label: t("requestForm.defect") },
   ];
 
   function renderSection() {
     if (activeSection === "return") {
-      return <ReturnsPanel title="المرتجعات" />;
+      return <ReturnsPanel title={t("requestForm.returns")} />;
     }
     if (activeSection === "defect") {
-      return <DefectsPanel title="العيب المصنعي" />;
+      return <DefectsPanel title={t("requestForm.defect")} />;
     }
     if (activeSection === "saved") {
       return (
         <DetailSection
           source={source}
-          title={`الطلبات المحفوظة - ${typeLabel}`}
+          title={t("requestForm.savedRequestsWithType", { type: typeLabel })}
           sections={[
             "header",
             "notes",
@@ -340,22 +348,22 @@ export default function RequestFormScreen({ source, typeLabel }) {
 
       {showContacts ? (
         <Modal
-          title={`قائمة ال${typeLabel}ات`}
+          title={t("requestForm.contactsListTitle", { type: typeLabel })}
           onClose={() => setShowContacts(false)}
           wide
           footer={
             <button className="btn" onClick={() => setShowContacts(false)}>
-              إغلاق
+              {t("common.close")}
             </button>
           }
         >
           <Table
             columns={[
-              { title: "الاسم", key: "name" },
-              { title: "الهاتف", key: "phone" },
-              { title: "المنطقة", key: "region" },
-              { title: "المستلم", key: "receiver" },
-              { title: "النوع", key: "type" },
+              { title: t("requestForm.name"), key: "name" },
+              { title: t("requestForm.phone"), key: "phone" },
+              { title: t("requestForm.region"), key: "region" },
+              { title: t("requestForm.receiver"), key: "receiver" },
+              { title: t("requestForm.type"), key: "type" },
               {
                 title: "",
                 render: (r) => (
@@ -363,25 +371,25 @@ export default function RequestFormScreen({ source, typeLabel }) {
                     className="btn btn-sm btn-primary"
                     onClick={() => pickFromContacts(r)}
                   >
-                    اختيار
+                    {t("requestForm.choose")}
                   </button>
                 ),
               },
             ]}
             rows={contacts}
-            emptyText="لا توجد بيانات"
+            emptyText={t("common.noData")}
           />
         </Modal>
       ) : null}
 
       {showHistory && history ? (
         <Modal
-          title={`سجل ${name}`}
+          title={t("requestForm.historyTitle", { name })}
           onClose={() => setShowHistory(false)}
           wide
           footer={
             <button className="btn" onClick={() => setShowHistory(false)}>
-              إغلاق
+              {t("common.close")}
             </button>
           }
         >
@@ -402,7 +410,7 @@ export default function RequestFormScreen({ source, typeLabel }) {
 
       {notesView ? (
         <ImagesModal
-          title="صورة الملاحظات"
+          title={t("requestForm.notesImage")}
           urls={notesView}
           onClose={() => setNotesView(null)}
         />
@@ -439,29 +447,30 @@ function RequestInfoSection({
   setShowContacts,
   summary,
 }) {
+  const { t } = useTranslation();
   return (
     <Card title={sectionTitle}>
       <div className="form-grid">
         <div className="field">
-          <label>النوع</label>
+          <label>{t("requestForm.type")}</label>
           {isCustomer ? (
             <select value={btype} onChange={(e) => setBtype(e.target.value)}>
-              <option>عميل</option>
-              <option>عميل مخلص</option>
-              <option>عميل فردي</option>
+              <option value="عميل">{t("requestForm.btypeCustomer")}</option>
+              <option value="عميل مخلص">{t("requestForm.btypeLoyalCustomer")}</option>
+              <option value="عميل فردي">{t("requestForm.btypeIndividualCustomer")}</option>
             </select>
           ) : (
             <input value="وكيل" readOnly />
           )}
         </div>
         <div className="field">
-          <label>اسم {typeLabel}</label>
+          <label>{t("requestForm.nameLabel", { type: typeLabel })}</label>
           <div className="form-row" style={{ gap: 6 }}>
             <input
               list="names-list"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="اكتب الاسم أو اختر من القائمة"
+              placeholder={t("requestForm.namePlaceholder")}
             />
             <datalist id="names-list">
               {names.map((n, i) => (
@@ -473,20 +482,20 @@ function RequestInfoSection({
               className="btn btn-sm"
               onClick={() => setShowContacts(true)}
             >
-              القائمة
+              {t("requestForm.list")}
             </button>
           </div>
         </div>
         <div className="field">
-          <label>الهاتف</label>
+          <label>{t("requestForm.phone")}</label>
           <input value={phone} onChange={(e) => setPhone(e.target.value)} />
         </div>
         <div className="field">
-          <label>المنطقة</label>
+          <label>{t("requestForm.region")}</label>
           <input value={region} onChange={(e) => setRegion(e.target.value)} />
         </div>
         <div className="field">
-          <label>المستلم</label>
+          <label>{t("requestForm.receiver")}</label>
           <input
             value={receiver}
             onChange={(e) => setReceiver(e.target.value)}
@@ -496,7 +505,7 @@ function RequestInfoSection({
 
       <div className="form-row" style={{ marginTop: 12 }}>
         <div className="field">
-          <label>ملاحظات</label>
+          <label>{t("requestForm.notes")}</label>
           <textarea
             rows={4}
             value={notes}
@@ -504,7 +513,7 @@ function RequestInfoSection({
           />
         </div>
         <div className="field">
-          <label>صورة الملاحظات</label>
+          <label>{t("requestForm.notesImage")}</label>
           <input
             type="file"
             accept="image/*,.pdf"
@@ -525,36 +534,36 @@ function RequestInfoSection({
 
       <div className="form-row" style={{ marginTop: 8 }}>
         <button className="btn" onClick={saveContact}>
-          حفظ كـ{typeLabel}
+          {t("requestForm.saveAs", { type: typeLabel })}
         </button>
         <button className="btn" onClick={fetchHistory}>
-          سجل المستفيد
+          {t("requestForm.beneficiaryHistory")}
         </button>
         <button className="btn" onClick={deleteContact}>
-          حذف المستخدم
+          {t("requestForm.deleteUser")}
         </button>
       </div>
 
       {summary ? (
         <div className="info-bar" style={{ marginTop: 12 }}>
           <span>
-            إجمالي الطلبات: <b>{summary.total}</b>
+            {t("requestForm.totalRequests")}: <b>{summary.total}</b>
           </span>
           <span>
-            فواتير كاملة: <b>{summary.invoice}</b>
+            {t("requestForm.fullInvoices")}: <b>{summary.invoice}</b>
           </span>
           <span>
-            شحن مكتمل: <b>{summary.shipment}</b>
+            {t("requestForm.shippingComplete")}: <b>{summary.shipment}</b>
           </span>
           <span>
-            أجهزة مكتملة: <b>{summary.dispatched}</b>
+            {t("requestForm.devicesComplete")}: <b>{summary.dispatched}</b>
           </span>
           <span>
-            تحميل مكتمل: <b>{summary.activation}</b>
+            {t("requestForm.activationComplete")}: <b>{summary.activation}</b>
           </span>
           {summary.last ? (
             <span>
-              آخر طلب: <b>{summary.last.req_id}</b> (
+              {t("requestForm.lastRequest")}: <b>{summary.last.req_id}</b> (
               {fmtTime(summary.last.created_at)})
             </span>
           ) : null}
@@ -565,20 +574,21 @@ function RequestInfoSection({
 }
 
 function RequestItemsSection({ items, itemsColumns, addItem, saveRequest }) {
+  const { t } = useTranslation();
   return (
-    <Card title="الأصناف المطلوبة">
+    <Card title={t("requestForm.requestedItems")}>
       <Table
         columns={itemsColumns}
         rows={items}
         rowKey={(r, i) => i}
-        emptyText="أضف صنفاً"
+        emptyText={t("requestForm.addItemEmpty")}
       />
       <div className="form-row" style={{ marginTop: 8 }}>
         <button className="btn" onClick={addItem}>
-          + إضافة صنف
+          + {t("requestForm.addItem")}
         </button>
         <button className="btn btn-primary" onClick={saveRequest}>
-          حفظ الطلب
+          {t("requestForm.saveRequest")}
         </button>
       </div>
     </Card>
@@ -586,29 +596,37 @@ function RequestItemsSection({ items, itemsColumns, addItem, saveRequest }) {
 }
 
 export function RequestHistoryList({ history }) {
+  const { t } = useTranslation();
   const list = history.requests || [];
   const cols = [
-    { title: "الرقم", key: "req_id" },
-    { title: "التاريخ", render: (r) => fmtTime(r.created_at) },
+    { title: t("requestForm.number"), key: "req_id" },
+    { title: t("requestForm.date"), render: (r) => fmtTime(r.created_at) },
     {
-      title: "الحالة",
+      title: t("requestForm.status"),
       render: (r) => {
-        const s = r.invoice_complete ? "تم" : "جاري";
+        const s = r.invoice_complete
+          ? t("requestForm.done")
+          : t("requestForm.inProgress");
         return <span className="status-chip status-invoice">{s}</span>;
       },
     },
     {
-      title: "الكمية",
+      title: t("requestForm.quantity"),
       render: (r) =>
         (r.items || []).reduce((s, it) => s + (Number(it.count) || 0), 0),
     },
   ];
   return (
-    <Table columns={cols} rows={list} emptyText="لا يوجد سجل لهذا المستفيد" />
+    <Table
+      columns={cols}
+      rows={list}
+      emptyText={t("requestForm.noHistory")}
+    />
   );
 }
 
 export function RequestsListModal({ source, onClose, onOpen }) {
+  const { t } = useTranslation();
   const [rows, setRows] = useState([]);
   useEffect(() => {
     api(`/requests?source=${source}`)
@@ -618,16 +636,16 @@ export function RequestsListModal({ source, onClose, onOpen }) {
   }, [source]);
 
   const cols = [
-    { title: "الرقم", key: "req_id" },
-    { title: "الاسم", key: "name" },
-    { title: "الهاتف", key: "phone" },
-    { title: "التاريخ", render: (r) => fmtTime(r.created_at) },
+    { title: t("requestForm.number"), key: "req_id" },
+    { title: t("requestForm.name"), key: "name" },
+    { title: t("requestForm.phone"), key: "phone" },
+    { title: t("requestForm.date"), render: (r) => fmtTime(r.created_at) },
     {
-      title: "الحالة",
+      title: t("requestForm.status"),
       render: (r) => <span>{r.display ? r.display.status : r.status}</span>,
     },
     {
-      title: "الكمية",
+      title: t("requestForm.quantity"),
       render: (r) =>
         (r.items || []).reduce((s, it) => s + (Number(it.count) || 0), 0),
     },
@@ -635,23 +653,23 @@ export function RequestsListModal({ source, onClose, onOpen }) {
       title: "",
       render: (r) => (
         <button className="btn btn-sm btn-primary" onClick={() => onOpen(r)}>
-          عرض
+          {t("common.show")}
         </button>
       ),
     },
   ];
   return (
     <Modal
-      title="سجل الطلبات"
+      title={t("requestForm.requestsLog")}
       onClose={onClose}
       wide
       footer={
         <button className="btn" onClick={onClose}>
-          إغلاق
+          {t("common.close")}
         </button>
       }
     >
-      <Table columns={cols} rows={rows} emptyText="لا توجد طلبات" />
+      <Table columns={cols} rows={rows} emptyText={t("requestForm.noRequests")} />
     </Modal>
   );
 }

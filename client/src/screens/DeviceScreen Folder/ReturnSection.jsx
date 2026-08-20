@@ -1,12 +1,19 @@
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { api, uploadImages } from "../../api.js";
 import { Card, Modal, Table, useNotify, fmtTime } from "../../components/ui.jsx";
 import ImagesModal from "../../components/ImagesModal.jsx";
 
 export default function ReturnSection() {
+  const { t } = useTranslation();
   const notify = useNotify();
   const [names, setNames] = useState([]);
   const [name, setName] = useState("");
+  // وكيل → طلب الصرف, عميل → طلب العميل. Everything below (names list,
+  // carton/serial lookups) is scoped to whichever one is picked, so a
+  // وكيل return can't accidentally pull in — or get confused with — a
+  // same-named عميل, and vice versa.
+  const [beneficiaryType, setBeneficiaryType] = useState("disbursement");
   const [cartonNo, setCartonNo] = useState("");
   const [code, setCode] = useState("");
   const [notes, setNotes] = useState("");
@@ -24,17 +31,28 @@ export default function ReturnSection() {
   // Every name that's ever appeared on a طلب صرف/عميل, plus anyone saved as
   // a contact — same list the name field on طلب الوكيل/طلب العميل uses, so
   // it's never empty just because no one has explicitly been "saved" as a
-  // contact yet.
+  // contact yet. Re-fetched whenever the وكيل/عميل toggle changes.
   useEffect(() => {
-    api("/requests/names?source=all")
+    api(`/requests/names?source=${beneficiaryType}`)
       .then((d) => setNames(d.names || []))
       .catch(() => {});
-  }, []);
+  }, [beneficiaryType]);
+
+  function switchBeneficiaryType(t) {
+    if (t === beneficiaryType) return;
+    setBeneficiaryType(t);
+    // Switching context — a name/device list scanned under وكيل means
+    // nothing once you're looking at عميل, so start clean rather than
+    // risk mixing the two in one submission.
+    setName("");
+    setMatches([]);
+    setUsedCodes(new Set());
+  }
 
   function pickName(n) {
     setName(n);
     setShowNamesList(false);
-    notify(`تم اختيار: ${n}`);
+    notify(t("returnSection.nameSelected", { name: n }));
   }
 
   async function uploadNotesImage(files) {
@@ -48,15 +66,15 @@ export default function ReturnSection() {
     setUsedCodes((prev) => new Set(prev).add(value));
 
     if (!newOnes.length) {
-      notify("⚠️ هذا الجهاز مضاف بالفعل", "error");
+      notify(t("returnSection.deviceAlreadyAdded"), "error");
       return;
     }
 
     setMatches((prev) => [...prev, ...newOnes]);
     notify(
       matched
-        ? `تمت إضافة ${newOnes.length} جهاز (${value})`
-        : `تمت إضافة الجهاز ${value}`,
+        ? t("returnSection.addedDevices", { count: newOnes.length, value })
+        : t("returnSection.addedDevice", { value }),
     );
   }
 
@@ -64,19 +82,23 @@ export default function ReturnSection() {
   // this person. Requires an actual match — a carton number on its own
   // isn't a device, so there's nothing sensible to fall back to.
   async function searchCarton() {
-    if (!name.trim()) return notify("اكتب اسم المستفيد أولاً", "error");
+    if (!name.trim()) return notify(t("returnSection.typeBeneficiaryNameFirst"), "error");
     const value = cartonNo.trim();
-    if (!value) return notify("أدخل رقم الكرتونة", "error");
+    if (!value) return notify(t("returnSection.enterCartonNo"), "error");
     if (usedCodes.has(value)) {
-      notify(`⚠️ تم إدخال "${value}" من قبل — لا يمكن تكراره`, "error");
+      notify(t("returnSection.codeAlreadyEntered", { value }), "error");
       return;
     }
 
-    const q = new URLSearchParams({ name: name.trim(), carton: value });
+    const q = new URLSearchParams({
+      name: name.trim(),
+      carton: value,
+      source: beneficiaryType,
+    });
     const d = await api(`/returns/lookup?${q}`);
     const items = d.items || [];
     if (!items.length) {
-      notify("لا توجد أجهزة بهذه الكرتونة لهذا المستفيد", "error");
+      notify(t("returnSection.noDevicesForCarton"), "error");
       return;
     }
     addItems(items, value, true);
@@ -92,17 +114,21 @@ export default function ReturnSection() {
     const value = raw.trim();
     if (!value) return;
     if (!name.trim()) {
-      notify("اكتب اسم المستفيد أولاً", "error");
+      notify(t("returnSection.typeBeneficiaryNameFirst"), "error");
       return;
     }
     if (usedCodes.has(value)) {
-      notify(`⚠️ تم إدخال "${value}" من قبل — لا يمكن تكراره`, "error");
+      notify(t("returnSection.codeAlreadyEntered", { value }), "error");
       return;
     }
 
     let items = [];
     try {
-      const q = new URLSearchParams({ name: name.trim(), carton: value });
+      const q = new URLSearchParams({
+        name: name.trim(),
+        carton: value,
+        source: beneficiaryType,
+      });
       const d = await api(`/returns/lookup?${q}`);
       items = d.items || [];
     } catch {
@@ -127,12 +153,12 @@ export default function ReturnSection() {
 
   function removeMatch(id) {
     setMatches((prev) => prev.filter((m) => m.ID !== id));
-    notify(`تمت إزالة ${id}`);
+    notify(t("returnSection.deviceRemoved", { id }));
   }
 
   async function submitReturn() {
-    if (!name.trim()) return notify("اكتب اسم المستفيد", "error");
-    if (!matches.length) return notify("أضف جهازاً واحداً على الأقل", "error");
+    if (!name.trim()) return notify(t("returnSection.typeBeneficiaryName"), "error");
+    if (!matches.length) return notify(t("returnSection.addAtLeastOneDevice"), "error");
     setBusy(true);
     try {
       const d = await api("/returns", {
@@ -142,13 +168,20 @@ export default function ReturnSection() {
           notes,
           notes_image: notesImage,
           devices: matches,
+          source: beneficiaryType,
         },
       });
 
       notify(
-        `تم إنشاء مرتجع ${d.return_req_id} — ${d.returned} جهاز إلى ${d.storage_label}` +
+        t("returnSection.created", {
+          count: d.returned,
+          reqId: d.return_req_id,
+          storage: t("storage.storage_return"),
+        }) +
           (d.affected_requests && d.affected_requests.length
-            ? ` (من الطلب: ${d.affected_requests.join("، ")})`
+            ? t("returnSection.createdFromRequests", {
+                requests: d.affected_requests.join("، "),
+              })
             : ""),
       );
       setLastResult(d);
@@ -159,7 +192,7 @@ export default function ReturnSection() {
       setNotes("");
       setNotesImage("");
     } catch (e) {
-      notify(e.message || "تعذر إتمام الإرجاع", "error");
+      notify(e.message || t("returnSection.failedToComplete"), "error");
     } finally {
       setBusy(false);
     }
@@ -169,26 +202,49 @@ export default function ReturnSection() {
   const [viewReturn, setViewReturn] = useState(null);
 
   return (
-    <Card title="المرتجع">
+    <Card title={t("returnSection.title")}>
       {lastResult ? (
         <div className="empty-hint" style={{ marginBottom: 8, fontWeight: 600 }}>
-          آخر مرتجع: <b>{lastResult.return_req_id}</b> — {lastResult.returned}{" "}
-          جهاز
+          {t("returnSection.lastReturn", {
+            count: lastResult.returned,
+            reqId: lastResult.return_req_id,
+          })}
           {lastResult.affected_requests && lastResult.affected_requests.length
-            ? ` (من الطلب: ${lastResult.affected_requests.join("، ")})`
+            ? t("returnSection.createdFromRequests", {
+                requests: lastResult.affected_requests.join("، "),
+              })
             : ""}
         </div>
       ) : null}
 
       <div className="form-grid">
         <div className="field">
-          <label>1 — اسم المستفيد</label>
+          <label>{t("returnSection.beneficiaryType")}</label>
+          <div className="form-row" style={{ gap: 6 }}>
+            <button
+              type="button"
+              className={`btn btn-sm ${beneficiaryType === "disbursement" ? "btn-primary" : ""}`}
+              onClick={() => switchBeneficiaryType("disbursement")}
+            >
+              {t("returnSection.agent")}
+            </button>
+            <button
+              type="button"
+              className={`btn btn-sm ${beneficiaryType === "customer" ? "btn-primary" : ""}`}
+              onClick={() => switchBeneficiaryType("customer")}
+            >
+              {t("returnSection.customer")}
+            </button>
+          </div>
+        </div>
+        <div className="field">
+          <label>{t("returnSection.beneficiaryName")}</label>
           <div className="form-row" style={{ gap: 6 }}>
             <input
               list="return-names-list"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="اكتب الاسم أو اختر من القائمة"
+              placeholder={t("returnSection.namePlaceholder")}
             />
             <datalist id="return-names-list">
               {names.map((n, i) => (
@@ -200,7 +256,7 @@ export default function ReturnSection() {
               className="btn btn-sm"
               onClick={() => setShowNamesList(true)}
             >
-              القائمة
+              {t("returnSection.list")}
             </button>
           </div>
         </div>
@@ -208,7 +264,7 @@ export default function ReturnSection() {
 
       <div className="form-row" style={{ marginTop: 12 }}>
         <div className="field">
-          <label>ملاحظات</label>
+          <label>{t("returnSection.notes")}</label>
           <textarea
             rows={4}
             value={notes}
@@ -216,7 +272,7 @@ export default function ReturnSection() {
           />
         </div>
         <div className="field">
-          <label>صورة الملاحظات</label>
+          <label>{t("returnSection.notesImage")}</label>
           <input
             type="file"
             accept="image/*,.pdf"
@@ -237,7 +293,7 @@ export default function ReturnSection() {
 
       <div className="form-grid" style={{ marginTop: 12 }}>
         <div className="field">
-          <label>2 — رقم الكرتونة (لإضافة كل أجهزتها دفعة واحدة)</label>
+          <label>{t("returnSection.cartonLabel")}</label>
           <div className="form-row" style={{ gap: 6 }}>
             <input
               value={cartonNo}
@@ -247,15 +303,15 @@ export default function ReturnSection() {
                 e.preventDefault();
                 searchCarton();
               }}
-              placeholder="رقم الكرتونة"
+              placeholder={t("returnSection.cartonNoPlaceholder")}
             />
             <button type="button" className="btn" onClick={searchCarton}>
-              بحث
+              {t("common.search")}
             </button>
           </div>
         </div>
         <div className="field">
-          <label>3 — امسح أو اكتب رقم الجهاز</label>
+          <label>{t("returnSection.scanDeviceLabel")}</label>
           <div className="form-row" style={{ gap: 6 }}>
             <input
               ref={codeRef}
@@ -263,10 +319,10 @@ export default function ReturnSection() {
               value={code}
               onChange={(e) => setCode(e.target.value)}
               onKeyDown={handleCodeKeyDown}
-              placeholder="امسح بالسكانر ثم Enter، أو اكتب الرقم واضغط إضافة"
+              placeholder={t("returnSection.scanPlaceholder")}
             />
             <button type="button" className="btn" onClick={() => addCode(code)}>
-              إضافة
+              {t("common.add")}
             </button>
           </div>
         </div>
@@ -274,7 +330,7 @@ export default function ReturnSection() {
 
       <div className="form-row" style={{ marginTop: 12 }}>
         <button className="btn btn-sm" onClick={() => setShowLog(true)}>
-          سجل طلبات المرتجع
+          {t("returnSection.returnRequestsLog")}
         </button>
         {matches.length ? (
           <button
@@ -284,24 +340,26 @@ export default function ReturnSection() {
               setUsedCodes(new Set());
             }}
           >
-            مسح القائمة
+            {t("returnSection.clearList")}
           </button>
         ) : null}
       </div>
 
       {matches.length ? (
         <>
-          <h4 style={{ marginTop: 14 }}>الأجهزة المضافة ({matches.length})</h4>
+          <h4 style={{ marginTop: 14 }}>
+            {t("returnSection.addedDevicesCount", { count: matches.length })}
+          </h4>
           <div className="table-wrap" style={{ marginTop: 8 }}>
             <table className="grid">
               <thead>
                 <tr>
                   <th>ID</th>
-                  <th>رقم الطلب</th>
-                  <th>الريسيفر</th>
-                  <th>الشريحة</th>
-                  <th>البطاقة</th>
-                  <th>الموديل</th>
+                  <th>{t("returnSection.requestNo")}</th>
+                  <th>{t("returnSection.receiver")}</th>
+                  <th>{t("returnSection.chip")}</th>
+                  <th>{t("returnSection.card")}</th>
+                  <th>{t("returnSection.model")}</th>
                   <th></th>
                 </tr>
               </thead>
@@ -319,7 +377,7 @@ export default function ReturnSection() {
                         className="btn btn-danger btn-sm"
                         onClick={() => removeMatch(m.ID)}
                       >
-                        حذف
+                        {t("common.delete")}
                       </button>
                     </td>
                   </tr>
@@ -329,13 +387,13 @@ export default function ReturnSection() {
           </div>
           <div className="form-row" style={{ marginTop: 10 }}>
             <button className="btn btn-primary" disabled={busy} onClick={submitReturn}>
-              {busy ? "جاري الإرجاع..." : "تسجيل المرتجع إلى مخزن المرتجع"}
+              {busy ? t("returnSection.returning") : t("returnSection.registerReturn")}
             </button>
           </div>
         </>
       ) : (
         <div className="empty-hint" style={{ marginTop: 12 }}>
-          اكتب اسم المستفيد ثم امسح أو اكتب رقم الجهاز لإضافته
+          {t("returnSection.emptyHint")}
         </div>
       )}
 
@@ -358,7 +416,7 @@ export default function ReturnSection() {
 
       {notesView ? (
         <ImagesModal
-          title="صورة الملاحظات"
+          title={t("returnSection.notesImage")}
           urls={notesView}
           onClose={() => setNotesView(null)}
         />
@@ -366,18 +424,18 @@ export default function ReturnSection() {
 
       {showNamesList ? (
         <Modal
-          title="قائمة المستفيدين"
+          title={t("returnSection.beneficiariesList")}
           onClose={() => setShowNamesList(false)}
           wide
           footer={
             <button className="btn" onClick={() => setShowNamesList(false)}>
-              إغلاق
+              {t("common.close")}
             </button>
           }
         >
           <Table
             columns={[
-              { title: "الاسم", render: (n) => n },
+              { title: t("returnSection.name"), render: (n) => n },
               {
                 title: "",
                 render: (n) => (
@@ -385,14 +443,14 @@ export default function ReturnSection() {
                     className="btn btn-sm btn-primary"
                     onClick={() => pickName(n)}
                   >
-                    اختيار
+                    {t("returnSection.choose")}
                   </button>
                 ),
               },
             ]}
             rows={names}
             rowKey={(n) => n}
-            emptyText="لا توجد بيانات"
+            emptyText={t("common.noData")}
           />
         </Modal>
       ) : null}
@@ -401,6 +459,7 @@ export default function ReturnSection() {
 }
 
 function ReturnRequestsLogModal({ onClose, onOpen }) {
+  const { t } = useTranslation();
   const [rows, setRows] = useState([]);
   useEffect(() => {
     api("/returns/requests")
@@ -409,20 +468,23 @@ function ReturnRequestsLogModal({ onClose, onOpen }) {
   }, []);
 
   const cols = [
-    { title: "الرقم", key: "req_id" },
-    { title: "الاسم", key: "name" },
-    { title: "التاريخ", render: (r) => fmtTime(r.created_at) },
-    { title: "عدد الأجهزة", render: (r) => (r.device_ids || []).length },
+    { title: t("returnSection.no"), key: "req_id" },
+    { title: t("returnSection.name"), key: "name" },
+    { title: t("returnSection.date"), render: (r) => fmtTime(r.created_at) },
     {
-      title: "من الطلب",
+      title: t("returnSection.deviceCount"),
+      render: (r) => (r.device_ids || []).length,
+    },
+    {
+      title: t("returnSection.fromRequests"),
       render: (r) => (r.source_requests || []).join("، ") || "—",
     },
-    { title: "ملاحظات", render: (r) => r.notes || "—" },
+    { title: t("returnSection.notes"), render: (r) => r.notes || "—" },
     {
       title: "",
       render: (r) => (
         <button className="btn btn-sm btn-primary" onClick={() => onOpen(r)}>
-          عرض
+          {t("common.show")}
         </button>
       ),
     },
@@ -430,55 +492,61 @@ function ReturnRequestsLogModal({ onClose, onOpen }) {
 
   return (
     <Modal
-      title="سجل طلبات المرتجع"
+      title={t("returnSection.returnRequestsLog")}
       onClose={onClose}
       wide
       footer={
         <button className="btn" onClick={onClose}>
-          إغلاق
+          {t("common.close")}
         </button>
       }
     >
-      <Table columns={cols} rows={rows} emptyText="لا توجد طلبات مرتجع" />
+      <Table columns={cols} rows={rows} emptyText={t("returnSection.noReturnRequests")} />
     </Modal>
   );
 }
 
 function ReturnRequestDetailModal({ record, onClose }) {
+  const { t } = useTranslation();
   const [view, setView] = useState(null);
   const cols = [
     { title: "ID", key: "ID" },
-    { title: "الريسيفر", key: "DecoderSerialNo" },
-    { title: "الشريحة", key: "ChipSerialNo" },
-    { title: "البطاقة", key: "CardSerialNo" },
-    { title: "الموديل", key: "Model_name" },
+    { title: t("returnSection.receiver"), key: "DecoderSerialNo" },
+    { title: t("returnSection.chip"), key: "ChipSerialNo" },
+    { title: t("returnSection.card"), key: "CardSerialNo" },
+    { title: t("returnSection.model"), key: "Model_name" },
   ];
   return (
     <Modal
-      title={`مرتجع ${record.req_id}`}
+      title={t("returnSection.returnRecord", { id: record.req_id })}
       onClose={onClose}
       wide
       footer={
         <button className="btn" onClick={onClose}>
-          إغلاق
+          {t("common.close")}
         </button>
       }
     >
       <div className="details-grid" style={{ marginBottom: 12 }}>
         <div className="kv">
-          <b>رقم المرتجع:</b> {record.req_id}
+          <b>{t("returnSection.returnNo")}:</b> {record.req_id}
         </div>
         <div className="kv">
-          <b>الاسم:</b> {record.name}
+          <b>{t("returnSection.name")}:</b> {record.name}
         </div>
         <div className="kv">
-          <b>التاريخ:</b> {fmtTime(record.created_at)}
+          <b>{t("returnSection.type")}:</b> {record.beneficiary_type || "—"}
         </div>
         <div className="kv">
-          <b>من الطلب:</b> {(record.source_requests || []).join("، ") || "—"}
+          <b>{t("returnSection.date")}:</b> {fmtTime(record.created_at)}
         </div>
         <div className="kv">
-          <b>ملاحظات:</b> {record.notes || "لا توجد ملاحظات"}
+          <b>{t("returnSection.fromRequests")}:</b>{" "}
+          {(record.source_requests || []).join("، ") || "—"}
+        </div>
+        <div className="kv">
+          <b>{t("returnSection.notes")}:</b>{" "}
+          {record.notes || t("returnSection.noNotes")}
         </div>
       </div>
       {record.notes_image ? (
@@ -495,11 +563,11 @@ function ReturnRequestDetailModal({ record, onClose }) {
         columns={cols}
         rows={record.devices_data || []}
         rowKey={(r) => r.ID}
-        emptyText="لا توجد أجهزة"
+        emptyText={t("returnSection.noDevices")}
       />
       {view ? (
         <ImagesModal
-          title="صورة الملاحظات"
+          title={t("returnSection.notesImage")}
           urls={view}
           onClose={() => setView(null)}
         />

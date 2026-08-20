@@ -1,8 +1,9 @@
 import RequestPanel from "../components/RequestPanel.jsx";
+import i18n from "../i18n.jsx";
 
 export default function DetailSection({
   source = "all",
-  title = "الطلبات المحفوظة",
+  title = i18n.t("detailSection.title"),
   sections = ["header", "notes", "invoice", "shipment", "hand", "devices"],
   stage,
   highlight,

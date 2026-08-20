@@ -1,18 +1,19 @@
 import { INVENTORY_STORAGE_CUSTOMER, INVENTORY_STORAGE_RETURN, STATUS_DISPATCHED } from '../config.js';
 import { parseReqId } from './requestService.js';
+import { t as defaultT } from '../i18n.js';
 
 export class DeviceService {
   constructor(dm) {
     this.dm = dm;
   }
 
-  saveDevicesAndInventory(reqId, devicesData, storageId = null) {
+  saveDevicesAndInventory(reqId, devicesData, storageId = null, t = defaultT) {
     reqId = parseReqId(reqId);
     if (!reqId || !this.dm.requestExists(reqId)) {
-      throw new Error('طلب الصرف غير موجود');
+      throw new Error(t('errors.requestNotFound'));
     }
     if (!devicesData || !devicesData.length) {
-      throw new Error('لا توجد أرقام أجهزة للحفظ');
+      throw new Error(t('errors.noDeviceNumbers'));
     }
 
     // Defensive de-dup: collapse repeat IDs within the incoming payload
@@ -30,7 +31,7 @@ export class DeviceService {
     );
     devicesData = devicesData.filter((d) => !alreadySaved.has(d.ID));
     if (!devicesData.length) {
-      throw new Error('هذه الأجهزة تم حفظها بالفعل لهذا الطلب');
+      throw new Error(t('errors.devicesAlreadySaved'));
     }
 
     const cartonSid = this.dm._normalizeStorageId(storageId);
@@ -61,15 +62,31 @@ export class DeviceService {
     req.customer_devices_recorded = true;
     this.dm.saveRequest(reqId);
 
-    const summaryParts = [`تم حفظ ${devicesData.length} جهاز`];
+    const summaryParts = [t('summary.devicesSaved', { count: devicesData.length })];
     if (removedCarton)
-      summaryParts.push(`خصم من ${this.dm.getStorageLabel(cartonSid)}: ${removedCarton}`);
+      summaryParts.push(
+        t('summary.deductedFrom', {
+          storage: t('storage.' + cartonSid),
+          count: removedCarton,
+        }),
+      );
     if (removedIndividual)
       summaryParts.push(
-        `خصم من ${this.dm.getStorageLabel(customerSid)}: ${removedIndividual}`,
+        t('summary.deductedFrom', {
+          storage: t('storage.' + customerSid),
+          count: removedIndividual,
+        }),
       );
-    const logDetail =
-      summaryParts.length > 1 ? summaryParts.slice(1).join(' | ') : 'بدون خصم من المخزون';
+    const logDetail = [
+      removedCarton
+        ? `خصم من ${this.dm.getStorageLabel(cartonSid)}: ${removedCarton}`
+        : '',
+      removedIndividual
+        ? `خصم من ${this.dm.getStorageLabel(customerSid)}: ${removedIndividual}`
+        : '',
+    ]
+      .filter(Boolean)
+      .join(' | ') || 'بدون خصم من المخزون';
     this.dm.log.logOperation(
       'save_devices',
       `حفظ ${devicesData.length} جهاز للطلب ${reqId} | ${logDetail}`,
@@ -79,20 +96,20 @@ export class DeviceService {
     return [req, summaryParts.join('\n')];
   }
 
-  deductFinancialBalance(reqId, devicesData = null) {
+  deductFinancialBalance(reqId, devicesData = null, t = defaultT) {
     reqId = parseReqId(reqId);
     if (!reqId || !this.dm.requestExists(reqId)) {
-      throw new Error('طلب الصرف غير موجود');
+      throw new Error(t('errors.requestNotFound'));
     }
 
     const req = this.dm.getRequest(reqId);
     if (req.financial_deducted) {
-      throw new Error('تم خصم الرصيد المالي لهذا الطلب مسبقاً');
+      throw new Error(t('errors.financialAlreadyDeducted'));
     }
 
     const items = devicesData && devicesData.length ? devicesData : req.devices_data || [];
     if (!items.length) {
-      throw new Error('لا توجد أجهزة لخصم الرصيد — احفظ الأجهزة أولاً');
+      throw new Error(t('errors.noDevicesToDeduct'));
     }
 
     let financialDeducted = 0;
@@ -112,7 +129,7 @@ export class DeviceService {
         if (!serial) continue;
         const record = this.dm.findRecordBySerial(String(serial));
         if (record) {
-          const [success, message] = this.dm.deductFromRecord(record.record_id, 1.0);
+          const [success, message] = this.dm.deductFromRecord(record.record_id, 1.0, t);
           if (success) {
             financialDeducted += 1;
             deducted = true;
@@ -135,20 +152,23 @@ export class DeviceService {
       `خصم رصيد ${financialDeducted} جهاز للطلب ${reqId}`,
     );
 
-    let summary = `خصم من الرصيد المالي: ${financialDeducted}\nبدون سجل مالي: ${financialSkipped}`;
+    let summary = `${t('summary.financialDeducted', { count: financialDeducted })}\n${t(
+      'summary.financialNoRecord',
+      { count: financialSkipped },
+    )}`;
     if (financialErrors.length)
-      summary += '\nأخطاء الرصيد:\n' + financialErrors.slice(0, 5).join('\n');
+      summary += '\n' + t('summary.financialErrors') + '\n' + financialErrors.slice(0, 5).join('\n');
     return [req, summary];
   }
 
-  returnDevices(reqId, deviceIds, notes = '') {
+  returnDevices(reqId, deviceIds, notes = '', t = defaultT) {
     reqId = parseReqId(reqId);
     if (!reqId || !this.dm.requestExists(reqId)) {
-      throw new Error('طلب الصرف غير موجود');
+      throw new Error(t('errors.requestNotFound'));
     }
     const ids = (deviceIds || []).filter(Boolean);
     if (!ids.length) {
-      throw new Error('لم يتم تحديد أي أجهزة لإرجاعها');
+      throw new Error(t('errors.noDevicesToReturn'));
     }
 
     const req = this.dm.getRequest(reqId);
@@ -156,7 +176,7 @@ export class DeviceService {
     const idSet = new Set(ids.map(String));
     const returned = currentDevices.filter((d) => idSet.has(String(d.ID)));
     if (!returned.length) {
-      throw new Error('الأجهزة المحددة غير موجودة ضمن أجهزة هذا الطلب');
+      throw new Error(t('errors.devicesNotInRequest'));
     }
     const remaining = currentDevices.filter((d) => !idSet.has(String(d.ID)));
 
@@ -181,13 +201,16 @@ export class DeviceService {
     );
     this.dm.syncCustomerDevicesFile(req.name);
 
-    const summary = `تم إرجاع ${returned.length} جهاز إلى ${this.dm.getStorageLabel(returnSid)}`;
+    const summary = t('summary.devicesReturned', {
+      count: returned.length,
+      storage: t('storage.' + returnSid),
+    });
     return [req, summary];
   }
 
-  confirmDispatch(reqId, devicesData, storageId = null) {
-    const [, summaryDevices] = this.saveDevicesAndInventory(reqId, devicesData, storageId);
-    const [, summaryFinancial] = this.deductFinancialBalance(reqId, devicesData);
+  confirmDispatch(reqId, devicesData, storageId = null, t = defaultT) {
+    const [, summaryDevices] = this.saveDevicesAndInventory(reqId, devicesData, storageId, t);
+    const [, summaryFinancial] = this.deductFinancialBalance(reqId, devicesData, t);
     return [`${summaryDevices}\n${summaryFinancial}`];
   }
 }

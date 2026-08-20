@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
+import i18n from "../i18n.jsx";
 import { api } from "../api.js";
 import { Card } from "./ui.jsx";
 import { sortArabicFirst } from "../utils.js";
@@ -9,7 +11,7 @@ function labelName(label) {
   const parts = text.split(" - ");
   if (parts.length < 2) return "";
   const namePart = parts.slice(1).join(" - ");
-  return namePart.replace(/\s*\(\d+\s+جهاز\)\s*$/, "").trim();
+  return namePart.replace(/\s*\([^)]*\)\s*$/, "").trim();
 }
 
 // Separate from "الطلبات المحفوظة" (which just displays any request
@@ -19,9 +21,10 @@ function labelName(label) {
 export default function EditRequestPanel({
   source = "all",
   stage,
-  title = "تعديل",
+  title = i18n.t("common.edit"),
   onSelect,
 }) {
+  const { t } = useTranslation();
   const [labels, setLabels] = useState([]);
   const [selectedName, setSelectedName] = useState("");
   const [selected, setSelected] = useState("");
@@ -69,7 +72,7 @@ export default function EditRequestPanel({
     <Card title={title}>
       <div className="form-row">
         <div className="field" style={{ flex: 1 }}>
-          <label>اختر الاسم</label>
+          <label>{t("common.selectName")}</label>
           <select
             value={selectedName}
             onChange={(e) => {
@@ -77,7 +80,7 @@ export default function EditRequestPanel({
               setSelected("");
             }}
           >
-            <option value="">كل الأسماء</option>
+            <option value="">{t("editRequestPanel.allNames")}</option>
             {names.map((n) => (
               <option key={n} value={n}>
                 {n}
@@ -86,12 +89,12 @@ export default function EditRequestPanel({
           </select>
         </div>
         <div className="field" style={{ flex: 2 }}>
-          <label>اختر طلباً للتعديل</label>
+          <label>{t("editRequestPanel.selectRequestToEdit")}</label>
           <select
             value={selected}
             onChange={(e) => e.target.value && select(e.target.value)}
           >
-            <option value="">— اختر —</option>
+            <option value="">{t("common.select")}</option>
             {filteredLabels.map((l) => (
               <option key={l} value={l}>
                 {l}
@@ -100,12 +103,14 @@ export default function EditRequestPanel({
           </select>
         </div>
         <button className="btn" onClick={() => loadLabels()}>
-          تحديث
+          {t("common.update")}
         </button>
       </div>
-      {loading ? <div className="empty-hint">جاري التحميل...</div> : null}
+      {loading ? <div className="empty-hint">{t("common.loading")}</div> : null}
       {!loading && !labels.length ? (
-        <div className="empty-hint">لا توجد طلبات مكتملة لهذه المرحلة بعد</div>
+        <div className="empty-hint">
+          {t("editRequestPanel.noCompletedRequests")}
+        </div>
       ) : null}
     </Card>
   );

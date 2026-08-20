@@ -1,4 +1,5 @@
 import { Card } from "../components/ui.jsx";
+import { useTranslation } from "react-i18next";
 
 export default function InvoiceAttachmentsSection({
   invoiceImage,
@@ -6,11 +7,12 @@ export default function InvoiceAttachmentsSection({
   upload,
   setView,
 }) {
+  const { t } = useTranslation();
   return (
-    <Card title="المرفقات">
+    <Card title={t("invoiceAttachments.title")}>
       <div className="form-grid">
         <div className="field">
-          <label>صورة أمر البيع</label>
+          <label>{t("invoiceAttachments.saleOrderImage")}</label>
           <input
             type="file"
             accept="image/*,.pdf"
@@ -28,7 +30,7 @@ export default function InvoiceAttachmentsSection({
           ) : null}
         </div>
         <div className="field">
-          <label>صورة الفاتورة المحاسبية</label>
+          <label>{t("invoiceAttachments.accountantInvoiceImage")}</label>
           <input
             type="file"
             accept="image/*,.pdf"

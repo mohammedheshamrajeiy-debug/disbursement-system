@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
+import i18n from "../i18n.jsx";
 import { api } from "../api.js";
 import { Card, Table, fmtTime } from "./ui.jsx";
 import { sortArabicFirst } from "../utils.js";
@@ -8,7 +10,8 @@ import ImagesModal from "./ImagesModal.jsx";
 // select pattern as الطلبات المحفوظة (RequestPanel), just backed by return
 // records instead of requests. No lookup/scan/submit here — actually
 // processing a return still only happens from the الأجهزة tab.
-export default function ReturnsPanel({ title = "المرتجعات" }) {
+export default function ReturnsPanel({ title = i18n.t("returnsPanel.title") }) {
+  const { t } = useTranslation();
   const [returns, setReturns] = useState([]);
   const [selectedName, setSelectedName] = useState("");
   const [selectedId, setSelectedId] = useState("");
@@ -36,8 +39,9 @@ export default function ReturnsPanel({ title = "المرتجعات" }) {
   }, [returns]);
 
   const filtered = useMemo(() => {
-    if (!selectedName) return returns;
-    return returns.filter((r) => r.name === selectedName);
+    const q = selectedName.trim().toLowerCase();
+    if (!q) return returns;
+    return returns.filter((r) => (r.name || "").toLowerCase().includes(q));
   }, [returns, selectedName]);
 
   const selected = useMemo(
@@ -47,53 +51,57 @@ export default function ReturnsPanel({ title = "المرتجعات" }) {
 
   const deviceCols = [
     { title: "ID", key: "ID" },
-    { title: "الريسيفر", key: "DecoderSerialNo" },
-    { title: "الشريحة", key: "ChipSerialNo" },
-    { title: "البطاقة", key: "CardSerialNo" },
-    { title: "الموديل", key: "Model_name" },
+    { title: t("returnsPanel.receiver"), key: "DecoderSerialNo" },
+    { title: t("returnsPanel.chip"), key: "ChipSerialNo" },
+    { title: t("returnsPanel.card"), key: "CardSerialNo" },
+    { title: t("returnsPanel.model"), key: "Model_name" },
   ];
 
   return (
     <Card title={title}>
       <div className="form-row">
         <div className="field" style={{ flex: 1 }}>
-          <label>اختر الاسم</label>
-          <select
+          <label>{t("common.selectName")}</label>
+          <input
+            list="returns-panel-names"
             value={selectedName}
             onChange={(e) => {
               setSelectedName(e.target.value);
               setSelectedId("");
             }}
-          >
-            <option value="">كل الأسماء</option>
+            placeholder={t("common.typeToSearch")}
+          />
+          <datalist id="returns-panel-names">
             {names.map((n) => (
-              <option key={n} value={n}>
-                {n}
-              </option>
+              <option key={n} value={n} />
             ))}
-          </select>
+          </datalist>
         </div>
         <div className="field" style={{ flex: 2 }}>
-          <label>اختر مرتجعاً</label>
+          <label>{t("returnsPanel.selectReturn")}</label>
           <select
             value={selectedId}
             onChange={(e) => setSelectedId(e.target.value)}
           >
-            <option value="">— اختر —</option>
+            <option value="">{t("common.select")}</option>
             {filtered.map((r) => (
               <option key={r.req_id} value={r.req_id}>
-                {r.req_id} - {r.name} ({(r.device_ids || []).length} جهاز)
+                {r.req_id} - {r.name} (
+                {t("returnsPanel.devicesCount", {
+                  count: (r.device_ids || []).length,
+                })}
+                )
               </option>
             ))}
           </select>
         </div>
         <button className="btn" onClick={() => load()}>
-          تحديث
+          {t("common.update")}
         </button>
       </div>
 
       {loading ? (
-        <div className="empty-hint">جاري التحميل...</div>
+        <div className="empty-hint">{t("common.loading")}</div>
       ) : selected ? (
         <>
           <div
@@ -101,20 +109,21 @@ export default function ReturnsPanel({ title = "المرتجعات" }) {
             style={{ marginTop: 12, marginBottom: 12 }}
           >
             <div className="kv">
-              <b>رقم المرتجع:</b> {selected.req_id}
+              <b>{t("returnsPanel.returnNumber")}</b> {selected.req_id}
             </div>
             <div className="kv">
-              <b>الاسم:</b> {selected.name}
+              <b>{t("returnsPanel.name")}</b> {selected.name}
             </div>
             <div className="kv">
-              <b>التاريخ:</b> {fmtTime(selected.created_at)}
+              <b>{t("returnsPanel.date")}</b> {fmtTime(selected.created_at)}
             </div>
             <div className="kv">
-              <b>من الطلب:</b>{" "}
+              <b>{t("returnsPanel.fromRequest")}</b>{" "}
               {(selected.source_requests || []).join("، ") || "—"}
             </div>
             <div className="kv">
-              <b>ملاحظات:</b> {selected.notes || "لا توجد ملاحظات"}
+              <b>{t("returnsPanel.notes")}</b>{" "}
+              {selected.notes || t("returnsPanel.noNotes")}
             </div>
           </div>
           {selected.notes_image ? (
@@ -131,18 +140,18 @@ export default function ReturnsPanel({ title = "المرتجعات" }) {
             columns={deviceCols}
             rows={selected.devices_data || []}
             rowKey={(r) => r.ID}
-            emptyText="لا توجد أجهزة"
+            emptyText={t("returnsPanel.noDevices")}
           />
         </>
       ) : (
         <div className="empty-hint" style={{ marginTop: 12 }}>
-          اختر مرتجعاً لعرض تفاصيله
+          {t("returnsPanel.selectReturnForDetails")}
         </div>
       )}
 
       {view ? (
         <ImagesModal
-          title="صورة الملاحظات"
+          title={t("returnsPanel.notesImage")}
           urls={view}
           onClose={() => setView(null)}
         />

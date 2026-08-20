@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { api } from '../api.js';
+import { useTranslation } from 'react-i18next';
 import { isImageUrl, isPdfUrl } from './ui.jsx';
 
 export default function ImagesModal({ title, urls, onClose }) {
+  const { t } = useTranslation();
   const [index, setIndex] = useState(0);
   const list = urls || [];
   const url = list[index];
@@ -20,16 +22,16 @@ export default function ImagesModal({ title, urls, onClose }) {
         </div>
         <div className="modal-body">
           {!url ? (
-            <div className="empty-hint">لا توجد مرفقات</div>
+            <div className="empty-hint">{t('common.noAttachments')}</div>
           ) : (
             <div className="img-viewer">
               {isPdfUrl(url) ? (
-                <iframe src={url} title="مرفق" />
+                <iframe src={url} title={t('common.attachment')} />
               ) : isImageUrl(url) ? (
-                <img src={url} alt="مرفق" />
+                <img src={url} alt={t('common.attachment')} />
               ) : (
                 <a href={url} target="_blank" rel="noreferrer">
-                  فتح المرفق
+                  {t('common.openAttachment')}
                 </a>
               )}
               {list.length > 1 ? (
@@ -39,7 +41,7 @@ export default function ImagesModal({ title, urls, onClose }) {
                     disabled={index === 0}
                     onClick={() => setIndex(index - 1)}
                   >
-                    السابق
+                    {t('common.previous')}
                   </button>
                   <span>
                     {index + 1} / {list.length}
@@ -49,7 +51,7 @@ export default function ImagesModal({ title, urls, onClose }) {
                     disabled={index >= list.length - 1}
                     onClick={() => setIndex(index + 1)}
                   >
-                    التالي
+                    {t('common.next')}
                   </button>
                 </div>
               ) : null}
@@ -66,6 +68,7 @@ export async function fetchImages(urls) {
 }
 
 export function ImageThumbs({ urls, onView }) {
+  const { t } = useTranslation();
   if (!urls || !urls.length) return <span className="muted">—</span>;
   return (
     <div className="img-thumbs">
@@ -80,7 +83,7 @@ export function ImageThumbs({ urls, onView }) {
           />
         ) : (
           <span key={i} className="img-chip" onClick={() => onView && onView(i)}>
-            📄 مرفق
+            📄 {t('common.attachment')}
           </span>
         )
       )}

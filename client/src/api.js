@@ -1,3 +1,5 @@
+import i18n from './i18n.jsx';
+
 export const TOKEN_KEY = 'disbursement_token';
 export const USER_KEY = 'disbursement_user';
 
@@ -23,7 +25,7 @@ export function clearAuth() {
 }
 
 export async function api(path, { method = 'GET', body, headers = {}, formData } = {}) {
-  const opts = { method, headers: { ...headers } };
+  const opts = { method, headers: { ...headers, 'Accept-Language': i18n.language } };
   const token = getToken();
   if (token) opts.headers.Authorization = `Bearer ${token}`;
   if (formData) {
@@ -43,9 +45,9 @@ export async function api(path, { method = 'GET', body, headers = {}, formData }
   if (res.status === 401) {
     clearAuth();
     window.location.href = '/';
-    throw new Error('انتهت الجلسة، سجّل الدخول مرة أخرى');
+    throw new Error(i18n.t('errors.sessionExpired'));
   }
-  if (!res.ok) throw new Error((data && data.error) || 'حدث خطأ غير متوقع');
+  if (!res.ok) throw new Error((data && data.error) || i18n.t('errors.unexpected'));
   return data;
 }
 

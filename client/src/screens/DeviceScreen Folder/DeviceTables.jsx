@@ -1,21 +1,24 @@
+import { useTranslation } from "react-i18next";
+
 export const DEV_COLS = [
-  { key: "customer_name", title: "اسم العميل" },
-  { key: "invoice_number", title: "رقم الفاتورة" },
-  { key: "ID", title: "ID" },
-  { key: "CartonSerialNo", title: "الكرتونة" },
-  { key: "DecoderSerialNo", title: "الريسيفر" },
-  { key: "ChipSerialNo", title: "الشريحة" },
-  { key: "CardSerialNo", title: "البطاقة" },
-  { key: "Model_name", title: "الموديل" },
+  { key: "customer_name", title: "deviceTables.customerName" },
+  { key: "invoice_number", title: "deviceTables.invoiceNumber" },
+  { key: "ID", title: "deviceTables.id" },
+  { key: "CartonSerialNo", title: "deviceTables.carton" },
+  { key: "DecoderSerialNo", title: "deviceTables.receiver" },
+  { key: "ChipSerialNo", title: "deviceTables.chip" },
+  { key: "CardSerialNo", title: "deviceTables.card" },
+  { key: "Model_name", title: "deviceTables.model" },
 ];
 
 export const CARTON_DEV_COLS = [
   ...DEV_COLS,
-  { key: "sku", title: "SKU" },
-  { key: "duration", title: "المدة" },
+  { key: "sku", title: "deviceTables.sku" },
+  { key: "duration", title: "deviceTables.duration" },
 ];
 
 export function DeviceBrowseTable({ rows, sel, toggleSel, onExport, columns = DEV_COLS }) {
+  const { t } = useTranslation();
   return (
     <div>
       <div className="table-wrap" style={{ marginTop: 10 }}>
@@ -24,7 +27,7 @@ export function DeviceBrowseTable({ rows, sel, toggleSel, onExport, columns = DE
             <tr>
               <th></th>
               {columns.map((c) => (
-                <th key={c.key}>{c.title}</th>
+                <th key={c.key}>{t(c.title)}</th>
               ))}
             </tr>
           </thead>
@@ -46,14 +49,14 @@ export function DeviceBrowseTable({ rows, sel, toggleSel, onExport, columns = DE
           </tbody>
         </table>
       </div>
-      {!rows.length ? <div className="empty-hint">لا توجد نتائج</div> : null}
+      {!rows.length ? <div className="empty-hint">{t("deviceTables.noResults")}</div> : null}
       {onExport ? (
         <button
           className="btn btn-sm"
           style={{ marginTop: 8 }}
           onClick={onExport}
         >
-          تصدير
+          {t("deviceTables.export")}
         </button>
       ) : null}
     </div>
@@ -68,6 +71,7 @@ export function DeviceEditTable({
   columns = DEV_COLS,
   onExport,
 }) {
+  const { t } = useTranslation();
   const allSelected = rows.length > 0 && rows.every((r) => sel.has(r.ID));
   function toggleAll() {
     if (allSelected) {
@@ -92,12 +96,12 @@ export function DeviceEditTable({
                     type="checkbox"
                     checked={allSelected}
                     onChange={toggleAll}
-                    title="تحديد الكل"
+                    title={t("deviceTables.selectAll")}
                   />
                 ) : null}
               </th>
               {columns.map((c) => (
-                <th key={c.key}>{c.title}</th>
+                <th key={c.key}>{t(c.title)}</th>
               ))}
             </tr>
           </thead>
@@ -119,16 +123,16 @@ export function DeviceEditTable({
           </tbody>
         </table>
       </div>
-      {!rows.length ? <div className="empty-hint">الجدول فارغ</div> : null}
+      {!rows.length ? <div className="empty-hint">{t("deviceTables.tableEmpty")}</div> : null}
       <div className="form-row" style={{ marginTop: 8 }}>
         {rows.length ? (
           <button className="btn btn-danger btn-sm" onClick={onDelete}>
-            حذف المحدد ({sel.size})
+            {t("deviceTables.deleteSelectedCount", { count: sel.size })}
           </button>
         ) : null}
         {onExport ? (
           <button className="btn btn-sm" onClick={onExport}>
-            تصدير
+            {t("deviceTables.export")}
           </button>
         ) : null}
       </div>

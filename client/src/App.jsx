@@ -11,6 +11,8 @@ import { useAuth } from "./auth.jsx";
 import { api } from "./api.js";
 import { useNotify } from "./components/ui.jsx";
 import Login from "./screens/Login.jsx";
+import { useLanguage } from "./i18n.jsx";
+import i18n from "./i18n.jsx";
 const RequestScreen = lazy(() => import("./screens/RequestScreen.jsx"));
 const CustomerScreen = lazy(() => import("./screens/CustomerScreen.jsx"));
 const InvoiceScreen = lazy(() => import("./screens/InvoiceScreen.jsx"));
@@ -36,9 +38,19 @@ export function useNav() {
 
 function LogoutButton() {
   const { logout } = useAuth();
+  const { t } = useLanguage();
   return (
     <button className="btn btn-ghost btn-sm" onClick={() => logout()}>
-      تسجيل الخروج
+      {t("logout")}
+    </button>
+  );
+}
+
+function LanguageToggleButton() {
+  const { t, toggleLanguage } = useLanguage();
+  return (
+    <button className="btn btn-ghost btn-sm" onClick={toggleLanguage}>
+      {t("langToggle")}
     </button>
   );
 }
@@ -164,9 +176,17 @@ function useReturnNotifications(user, ready) {
     kind: "returns",
     endpoint: "/returns/requests",
     tabs: RETURN_NOTIFY_TABS,
-    oneMsg: (r) => `تم إجراء مرتجع جديد رقم ${r.req_id} من ${r.name || "غير معروف"}`,
+    oneMsg: (r) =>
+      i18n.t("notify.newReturn", {
+        count: 1,
+        id: r.req_id,
+        name: r.name || i18n.t("notify.unknown"),
+      }),
     manyMsg: (pending) =>
-      `تم إجراء ${pending.length} مرتجعات جديدة: ${pending.map((r) => r.req_id).join("، ")}`,
+      i18n.t("notify.newReturn", {
+        count: pending.length,
+        ids: pending.map((r) => r.req_id).join(", "),
+      }),
   });
   return { announce, returns: items };
 }
@@ -176,9 +196,17 @@ function useDefectNotifications(user, ready) {
     kind: "defects",
     endpoint: "/defects/requests",
     tabs: DEFECT_NOTIFY_TABS,
-    oneMsg: (r) => `تم تسجيل عيب مصنعي جديد رقم ${r.req_id} من ${r.name || "غير معروف"}`,
+    oneMsg: (r) =>
+      i18n.t("notify.newDefect", {
+        count: 1,
+        id: r.req_id,
+        name: r.name || i18n.t("notify.unknown"),
+      }),
     manyMsg: (pending) =>
-      `تم تسجيل ${pending.length} عيوب مصنعية جديدة: ${pending.map((r) => r.req_id).join("، ")}`,
+      i18n.t("notify.newDefect", {
+        count: pending.length,
+        ids: pending.map((r) => r.req_id).join(", "),
+      }),
   });
   return { announce, defects: items };
 }
@@ -198,36 +226,65 @@ const STAGE_EVENTS = [
     timeField: "created_at",
     targetTab: () => "invoice",
     isReached: () => true,
-    oneMsg: (r) => `طلب جديد رقم ${r.request_id} بانتظار الفاتورة من ${r.name || "غير معروف"}`,
+    oneMsg: (r) =>
+      i18n.t("notify.newRequest", {
+        count: 1,
+        id: r.request_id,
+        name: r.name || i18n.t("notify.unknown"),
+      }),
     manyMsg: (list) =>
-      `${list.length} طلبات جديدة بانتظار الفاتورة: ${list.map((r) => r.request_id).join("، ")}`,
+      i18n.t("notify.newRequest", {
+        count: list.length,
+        ids: list.map((r) => r.request_id).join(", "),
+      }),
   },
   {
     key: "invoiced",
     timeField: "invoice_added_at",
     targetTab: () => "devices",
     isReached: (r) => !!r.invoice_added_at,
-    oneMsg: (r) => `تم إصدار فاتورة الطلب ${r.request_id} - جاهز لصرف الأجهزة`,
+    oneMsg: (r) =>
+      i18n.t("notify.invoiced", {
+        count: 1,
+        id: r.request_id,
+      }),
     manyMsg: (list) =>
-      `${list.length} طلبات جاهزة لصرف الأجهزة: ${list.map((r) => r.request_id).join("، ")}`,
+      i18n.t("notify.invoiced", {
+        count: list.length,
+        ids: list.map((r) => r.request_id).join(", "),
+      }),
   },
   {
     key: "dispatched",
     timeField: "devices_confirmed_at",
     targetTab: () => "activation",
     isReached: (r) => !!r.devices_confirmed_at,
-    oneMsg: (r) => `تم صرف أجهزة الطلب ${r.request_id} - جاهز للتحميل`,
+    oneMsg: (r) =>
+      i18n.t("notify.dispatched", {
+        count: 1,
+        id: r.request_id,
+      }),
     manyMsg: (list) =>
-      `${list.length} طلبات جاهزة للتحميل: ${list.map((r) => r.request_id).join("، ")}`,
+      i18n.t("notify.dispatched", {
+        count: list.length,
+        ids: list.map((r) => r.request_id).join(", "),
+      }),
   },
   {
     key: "fully_activated",
     timeField: "fully_activated_at",
     targetTab: (r) => (String(r.request_id || "").startsWith("C") ? "customer" : "request"),
     isReached: (r) => !!r.fully_activated_at,
-    oneMsg: (r) => `تم تحميل جميع أجهزة الطلب ${r.request_id} بالكامل`,
+    oneMsg: (r) =>
+      i18n.t("notify.fullyActivated", {
+        count: 1,
+        id: r.request_id,
+      }),
     manyMsg: (list) =>
-      `${list.length} طلبات تم تحميلها بالكامل: ${list.map((r) => r.request_id).join("، ")}`,
+      i18n.t("notify.fullyActivated", {
+        count: list.length,
+        ids: list.map((r) => r.request_id).join(", "),
+      }),
   },
 ];
 
@@ -303,6 +360,7 @@ function useStageNotifications(user, ready) {
 
 export default function App() {
   const { user, loading } = useAuth();
+  const { t } = useLanguage();
   const [tab, setTab] = useState("request");
   const [selectedRequest, setSelectedRequest] = useState(null);
   const { announce: announceReturns, returns } = useReturnNotifications(user, !loading);
@@ -328,7 +386,7 @@ export default function App() {
   }, [user, loading, active, returns, defects, stageRequests]);
 
   if (loading) {
-    return <div className="boot">جاري تحميل النظام...</div>;
+    return <div className="boot">{t("bootLoading")}</div>;
   }
 
   if (!user) {
@@ -354,10 +412,15 @@ export default function App() {
     >
       <div className="app-shell">
         <header className="app-header">
-          <div className="app-title">نظام إدارة الصرف والمخزون</div>
+          <div className="app-title">{t("appTitle")}</div>
           <div className="app-user">
-            <span className="role-badge">{user.role || "مستخدم"}</span>
+            <span className="role-badge">
+              {user.username && t(`role.${user.username}`) !== `role.${user.username}`
+                ? t(`role.${user.username}`)
+                : user.role || t("roleFallback")}
+            </span>
             <span className="user-name">{user.full_name || user.username}</span>
+            <LanguageToggleButton />
             <LogoutButton />
           </div>
         </header>
@@ -368,14 +431,14 @@ export default function App() {
               className={`tab-btn ${active === key ? "active" : ""}`}
               onClick={() => setTab(key)}
             >
-              {TAB_META[key].label}
+              {t(`tab_${key}`)}
             </button>
           ))}
         </nav>
         <main className="app-main">
           <Suspense
             fallback={
-              <div className="loading-screen">جاري تحميل المحتوى...</div>
+              <div className="loading-screen">{t("loading")}</div>
             }
           >
             <Screen key={active} />

@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
+import i18n from "../i18n.jsx";
 import { api } from "../api.js";
 import RequestDetails from "./RequestDetails.jsx";
 import { Card } from "./ui.jsx";
@@ -13,13 +15,13 @@ function labelName(label) {
   const parts = text.split(" - ");
   if (parts.length < 2) return "";
   const namePart = parts.slice(1).join(" - ");
-  return namePart.replace(/\s*\(\d+\s+جهاز\)\s*$/, "").trim();
+  return namePart.replace(/\s*\([^)]*\)\s*$/, "").trim();
 }
 
 export default function RequestPanel({
   source,
   stage,
-  title = "الطلبات",
+  title = i18n.t("requestPanel.title"),
   sections,
   onSelect,
   highlight,
@@ -27,6 +29,7 @@ export default function RequestPanel({
   completed = false,
   hideFinancial = false,
 }) {
+  const { t } = useTranslation();
   const [labels, setLabels] = useState([]);
   const [selected, setSelected] = useState("");
   const [selectedName, setSelectedName] = useState("");
@@ -43,8 +46,9 @@ export default function RequestPanel({
   }, [labels]);
 
   const filteredLabels = useMemo(() => {
-    if (!selectedName) return labels;
-    return labels.filter((label) => labelName(label) === selectedName);
+    const q = selectedName.trim().toLowerCase();
+    if (!q) return labels;
+    return labels.filter((label) => labelName(label).toLowerCase().includes(q));
   }, [labels, selectedName]);
 
   async function loadLabels() {
@@ -89,30 +93,30 @@ export default function RequestPanel({
     <Card title={title}>
       <div className="form-row">
         <div className="field" style={{ flex: 1 }}>
-          <label>اختر الاسم</label>
-          <select
+          <label>{t("common.selectName")}</label>
+          <input
+            list="request-panel-names"
             value={selectedName}
             onChange={(e) => {
               setSelectedName(e.target.value);
               setSelected("");
               setRequest(null);
             }}
-          >
-            <option value="">كل الأسماء</option>
+            placeholder={t("common.typeToSearch")}
+          />
+          <datalist id="request-panel-names">
             {names.map((n) => (
-              <option key={n} value={n}>
-                {n}
-              </option>
+              <option key={n} value={n} />
             ))}
-          </select>
+          </datalist>
         </div>
         <div className="field" style={{ flex: 2 }}>
-          <label>اختر طلباً</label>
+          <label>{t("requestPanel.selectRequest")}</label>
           <select
             value={selected}
             onChange={(e) => e.target.value && select(e.target.value)}
           >
-            <option value="">— اختر —</option>
+            <option value="">{t("common.select")}</option>
             {filteredLabels.map((l) => (
               <option key={l} value={l}>
                 {l}
@@ -121,11 +125,11 @@ export default function RequestPanel({
           </select>
         </div>
         <button className="btn" onClick={() => loadLabels()}>
-          تحديث
+          {t("common.update")}
         </button>
       </div>
       {loading ? (
-        <div className="empty-hint">جاري التحميل...</div>
+        <div className="empty-hint">{t("common.loading")}</div>
       ) : showDetails ? (
         <RequestDetails
           request={request}

@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { INVENTORY_STORAGE_DEFECT, INVENTORY_STORAGE_CUSTOMER, INVENTORY_COLUMNS } from '../config.js';
+import { INVENTORY_STORAGE_DEFECT, INVENTORY_STORAGE_CUSTOMER, INVENTORY_COLUMNS, REQUEST_SOURCE_ALL, REQUEST_SOURCE_DISBURSEMENT } from '../config.js';
 import { requireTab } from './auth.js';
 
 export function defectRoutes(dm) {
@@ -18,7 +18,7 @@ export function defectRoutes(dm) {
 
   router.get('/requests/:id', (req, res) => {
     const record = dm.getDefectRequest(String(req.params.id || '').trim());
-    if (!record) return res.status(404).json({ error: 'رقم عيب مصنعي غير موجود' });
+    if (!record) return res.status(404).json({ error: req.t('errors.defectNotFound') });
     res.json({ request: record });
   });
 
@@ -29,8 +29,10 @@ export function defectRoutes(dm) {
 
   // Names of people who currently have at least one un-returned device on
   // record — used to power the name datalist in the العيب المصنعي screen.
+  // Same وكيل/عميل narrowing as المرتجع, see returns.js.
   router.get('/names', (req, res) => {
-    res.json({ names: dm.getCustomerDeviceNames() });
+    const source = String(req.query.source || REQUEST_SOURCE_ALL).trim();
+    res.json({ names: dm.getCustomerDeviceNames(source) });
   });
 
   // Look up what a specific person actually received, either by carton
@@ -39,11 +41,12 @@ export function defectRoutes(dm) {
   router.get('/lookup', (req, res) => {
     const name = String(req.query.name || '').trim();
     const raw = String(req.query.carton || '').trim();
+    const source = String(req.query.source || REQUEST_SOURCE_ALL).trim();
     if (!name || !raw) return res.json({ items: [] });
 
-    let items = dm.findCustomerDevicesByCarton(name, raw);
+    let items = dm.findCustomerDevicesByCarton(name, raw, source);
     if (!items.length) {
-      const single = dm.findCustomerDeviceBySerial(name, raw);
+      const single = dm.findCustomerDeviceBySerial(name, raw, source);
       if (single) items = [single];
     }
     res.json({ items });
@@ -81,11 +84,15 @@ export function defectRoutes(dm) {
     const defectType = String(req.body.defect_type || '').trim();
     const devices = Array.isArray(req.body.devices) ? req.body.devices : [];
     const replacements = Array.isArray(req.body.replacements) ? req.body.replacements : [];
+    // Which pool اسم المستفيد was searched against — recorded on the
+    // defect itself purely so the log/detail view can show whether this
+    // was a وكيل or عميل defect; doesn't affect how it's filed.
+    const beneficiaryType = String(req.body.source || '').trim() === REQUEST_SOURCE_DISBURSEMENT ? 'وكيل' : 'عميل';
     if (!name) {
-      return res.status(400).json({ error: 'أدخل اسم المستفيد' });
+      return res.status(400).json({ error: req.t('errors.enterName') });
     }
     if (!devices.length) {
-      return res.status(400).json({ error: 'أضف جهازاً واحداً على الأقل' });
+      return res.status(400).json({ error: req.t('errors.addDevice') });
     }
 
     const seen = new Set();
@@ -102,7 +109,7 @@ export function defectRoutes(dm) {
       clean.push({ ...item, req_id: (raw && raw.req_id) || '' });
     }
     if (!clean.length) {
-      return res.status(400).json({ error: 'لم يتم تحديد أي جهاز صالح للإرجاع' });
+      return res.status(400).json({ error: req.t('errors.noValidDevices') });
     }
 
     const defectReqId = dm.generateDefectRequestId();
@@ -161,6 +168,7 @@ export function defectRoutes(dm) {
     dm.addDefectRequest({
       req_id: defectReqId,
       name,
+      beneficiary_type: beneficiaryType,
       notes,
       notes_image: notesImage,
       device_ids: clean.map((d) => d.ID),

@@ -1,10 +1,11 @@
+import { useTranslation } from "react-i18next";
 import { Card } from "../../components/ui.jsx";
 import RequestDetails from "../../components/RequestDetails.jsx";
 
 const STORAGES = [
-  { id: "storage_1", label: "المخزون 1" },
-  { id: "storage_2", label: "المخزون 2" },
-  { id: "storage_return", label: "مخزن المرتجع" },
+  { id: "storage_1", label: "storage.storage_1" },
+  { id: "storage_2", label: "storage.storage_2" },
+  { id: "storage_return", label: "storage.storage_return" },
 ];
 
 export default function SummarySection({
@@ -19,11 +20,12 @@ export default function SummarySection({
   onToggleCarton,
   onToggleCustomer,
 }) {
+  const { t } = useTranslation();
   return (
-    <Card title="معلومات الطلب">
+    <Card title={t("summarySection.title")}>
       <div className="form-row">
         <div className="field" style={{ flex: 1, minWidth: 200 }}>
-          <label>رقم الطلب</label>
+          <label>{t("summarySection.requestNumber")}</label>
           <input
             value={reqId}
             onChange={(e) => setReqId(e.target.value)}
@@ -39,7 +41,7 @@ export default function SummarySection({
                 checked={storageId === s.id}
                 onChange={() => setStorageId(s.id)}
               />
-              {s.label}
+              {t(s.label)}
             </label>
           ))}
           {countsFor[storageId] != null ? (
@@ -50,24 +52,30 @@ export default function SummarySection({
       {request ? (
         <div className="info-bar" style={{ marginTop: 10 }}>
           <span>
-            الطلب: <b>{request.req_id || request.request_id}</b>
+            {t("summarySection.request")}:{" "}
+            <b>{request.req_id || request.request_id}</b>
           </span>
           <span>
-            الاسم: <b>{request.name}</b>
+            {t("summarySection.name")}: <b>{request.name}</b>
           </span>
           <span>
-            الحالة: <b>{request.status}</b>
+            {t("summarySection.status")}: <b>{request.status}</b>
           </span>
           <span>
-            الأجهزة المحفوظة: <b>{currentDevices.length}</b>
+            {t("summarySection.savedDevices")}:{" "}
+            <b>{currentDevices.length}</b>
           </span>
           <span>
-            الرصيد:{" "}
-            <b>{request.financial_deducted ? "تم الخصم" : "لم يُخصم"}</b>
+            {t("summarySection.balance")}:{" "}
+            <b>
+              {request.financial_deducted
+                ? t("summarySection.deducted")
+                : t("summarySection.notDeducted")}
+            </b>
           </span>
         </div>
       ) : (
-        <div className="empty-hint">اختر طلباً لعرض معلوماته</div>
+        <div className="empty-hint">{t("summarySection.selectRequestHint")}</div>
       )}
       {request ? (
         <RequestDetails
@@ -81,14 +89,14 @@ export default function SummarySection({
           type="button"
           onClick={onToggleCarton}
         >
-          استيراد من الكرتونة
+          {t("summarySection.importFromCarton")}
         </button>
         <button
           className={`btn ${importPanel === "customer" ? "btn-primary" : ""}`}
           type="button"
           onClick={onToggleCustomer}
         >
-          استيراد من المخزن
+          {t("summarySection.importFromStorage")}
         </button>
       </div>
     </Card>
