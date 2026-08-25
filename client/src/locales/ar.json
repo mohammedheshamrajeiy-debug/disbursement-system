@@ -6,6 +6,7 @@
   "bootLoading": "جاري تحميل النظام...",
   "langToggle": "English",
   "tab_request": "طلب صرف",
+  "tab_disbursement": "طلب صرف",
   "tab_customer": "طلب عميل",
   "tab_invoice": "الفاتورة",
   "tab_devices": "الأجهزة",
@@ -22,7 +23,8 @@
     "hintTitle": "الحسابات الافتراضية:",
     "hintAdmin": "مدير النظام:",
     "hintStaff": "موظفون:",
-    "hintPasswordLabel": "كلمة المرور"
+    "hintPasswordLabel": "كلمة المرور",
+    "thesis": "إدارة الموارد، وتتبع البضائع، وضمان عمليات الصرف الشفافة"
   },
   "common": {
     "loading": "جاري التحميل...",
@@ -54,7 +56,11 @@
     "no": "لا",
     "viewAll": "عرض الكل",
     "selectName": "اختر الاسم",
-    "typeToSearch": "اكتب اسماً للبحث أو اتركه لعرض الكل"
+    "selectId": "اختر المعرف",
+    "selectNameOrId": "اختر الاسم أو المعرف",
+    "typeToSearch": "اكتب اسماً أو معرفاً للبحث أو اتركه لعرض الكل",
+    "noMatchesFound": "لا توجد نتائج",
+    "back": "رجوع"
   },
   "status": {
     "pending": "قيد الانتظار",
@@ -182,8 +188,8 @@
     "noRequestSelected": "لم يتم اختيار طلب",
     "view_one": "عرض",
     "view_other": "عرض ({{count}})",
-    "returnedBanner_one": "⚠️ هذا العميل أرجع {{count}} جهاز من هذا الطلب",
-    "returnedBanner_other": "⚠️ هذا العميل أرجع {{count}} جهاز من هذا الطلب",
+    "returnedBanner_one": " هذا العميل أرجع {{count}} جهاز من هذا الطلب",
+    "returnedBanner_other": " هذا العميل أرجع {{count}} جهاز من هذا الطلب",
     "returnDeviceCount_one": "{{count}} جهاز",
     "returnDeviceCount_other": "{{count}} جهاز",
     "carton": " — كرتونة {{no}}",
@@ -248,7 +254,7 @@
     "chooseFromStorage": "اختيار من المخزن",
     "chip": "الشريحة",
     "clearList": "مسح القائمة",
-    "codeAlreadyEntered": "⚠️ تم إدخال \"{{value}}\" من قبل — لا يمكن تكراره",
+    "codeAlreadyEntered": " تم إدخال \"{{value}}\" من قبل — لا يمكن تكراره",
     "createdFromRequests": " (من الطلب: {{requests}})",
     "created_zero": "تم إنشاء عيب مصنعي {{reqId}} — {{count}} جهاز إلى {{storage}}",
     "created_one": "تم إنشاء عيب مصنعي {{reqId}} — {{count}} جهاز إلى {{storage}}",
@@ -265,9 +271,9 @@
     "defectRequestsLog": "سجل طلبات العيب المصنعي",
     "defectType": "نوع العطل",
     "defectTypePlaceholder": "اكتب نوع العطل",
-    "deviceAlreadyAdded": "⚠️ هذا الجهاز مضاف بالفعل",
+    "deviceAlreadyAdded": " هذا الجهاز مضاف بالفعل",
     "deviceCount": "عدد الأجهزة",
-    "deviceNotFoundCustomerStore": "⚠️ لم يتم العثور على هذا الجهاز في مخزن خدمة العملاء",
+    "deviceNotFoundCustomerStore": " لم يتم العثور على هذا الجهاز في مخزن خدمة العملاء",
     "deviceRemoved": "تمت إزالة {{id}}",
     "emptyHint": "اكتب اسم المستفيد ثم امسح أو اكتب رقم الجهاز لإضافته",
     "failedToComplete": "تعذر إتمام تسجيل العيب المصنعي",
@@ -349,7 +355,7 @@
     "chip": "الشريحة",
     "choose": "اختيار",
     "clearList": "مسح القائمة",
-    "codeAlreadyEntered": "⚠️ تم إدخال \"{{value}}\" من قبل — لا يمكن تكراره",
+    "codeAlreadyEntered": " تم إدخال \"{{value}}\" من قبل — لا يمكن تكراره",
     "createdFromRequests": " (من الطلب: {{requests}})",
     "created_zero": "تم إنشاء مرتجع {{reqId}} — {{count}} جهاز إلى {{storage}}",
     "created_one": "تم إنشاء مرتجع {{reqId}} — {{count}} جهاز إلى {{storage}}",
@@ -359,7 +365,7 @@
     "created_other": "تم إنشاء مرتجع {{reqId}} — {{count}} جهاز إلى {{storage}}",
     "customer": "عميل",
     "date": "التاريخ",
-    "deviceAlreadyAdded": "⚠️ هذا الجهاز مضاف بالفعل",
+    "deviceAlreadyAdded": " هذا الجهاز مضاف بالفعل",
     "deviceCount": "عدد الأجهزة",
     "deviceRemoved": "تمت إزالة {{id}}",
     "emptyHint": "اكتب اسم المستفيد ثم امسح أو اكتب رقم الجهاز لإضافته",
@@ -427,7 +433,8 @@
     "shipmentSaved": "تم حفظ بيانات الشحن",
     "handDeliverySaved": "تم حفظ بيانات الاستلام اليدوي",
     "panelTitle": "طلبات بانتظار الأجهزة",
-    "shipImagesTitle": "صور الشحن / التسليم"
+    "shipImagesTitle": "صور الشحن / التسليم",
+    "agent": "وكيل الأجهزة"
   },
   "devicesSection": {
     "savedRequests": "الطلبات المحفوظة"
@@ -538,7 +545,8 @@
     "requestsAwaitingInvoice": "طلبات بانتظار الفاتورة",
     "selectRequestFirst": "اختر طلباً أولاً",
     "enterInvoiceNumberOrImage": "أدخل رقم الفاتورة أو أرفق صورة الفاتورة",
-    "invoiceSaved": "تم حفظ الفاتورة"
+    "invoiceSaved": "تم حفظ الفاتورة",
+    "agent": "وكيل الفواتير"
   },
   "invoiceRequest": {
     "title": "بيانات الطلب",
@@ -590,7 +598,8 @@
     "loaded": "محمل",
     "notLoaded": "غير محمل",
     "activationDate": "تاريخ التحميل",
-    "pendingActivationRequests": "طلبات بانتظار التحميل"
+    "pendingActivationRequests": "طلبات بانتظار التحميل",
+    "agent": "وكيل التحميل"
   },
   "activationSection": {
     "number": "الرقم",
@@ -656,7 +665,8 @@
     "importing": "جاري الاستيراد...",
     "importExcel": "استيراد Excel",
     "exportExcel": "تصدير Excel",
-    "noDevicesInStorage": "لا توجد أجهزة في هذا المخزن"
+    "noDevicesInStorage": "لا توجد أجهزة في هذا المخزن",
+    "agent": "وكيل المخزون"
   },
   "logScreen": {
     "operationsLog": "سجل العمليات",
@@ -671,7 +681,8 @@
     "totalOperations": "إجمالي العمليات:",
     "exportExcel": "تصدير Excel",
     "clearLog": "مسح السجل",
-    "noOperations": "لا توجد عمليات مسجلة"
+    "noOperations": "لا توجد عمليات مسجلة",
+    "agent": "وكيل السجل"
   },
   "customerScreen": {
     "customer": "عميل"
@@ -697,5 +708,34 @@
   },
   "requestScreen": {
     "agent": "وكيل"
+  },
+  "messageWindow": {
+    "openChat": "فتح المحادثة",
+    "chat": "المحادثة",
+    "selectChat": "اختر محادثة",
+    "title": "المحادثة",
+    "typing": "جاري الكتابة...",
+    "sending": "جاري الإرسال...",
+    "send": "إرسال",
+    "newMessage": "وصلت رسالة جديدة",
+    "messageSent": "تم إرسال الرسالة بنجاح",
+    "sendError": "فشل إرسال الرسالة",
+    "markedAsRead": "تم تعليم الرسالة كمقروءة",
+    "you": "أنت",
+    "unread": "غير مقروءة",
+    "chattingWith": "محادثة مع",
+    "messageInput": "إدخال الرسالة",
+    "fromUser": "من المستخدم",
+    "noMessages": "لا توجد رسائل بعد",
+    "startConversation": "ابدأ المحادثة بإرسال رسالة",
+    "messagePlaceholder": "اكتب رسالة...",
+    "selectRecipients": "اختر المستلمين",
+    "selectAll": "تحديد الكل",
+    "composeTo": "رسالة جديدة",
+    "broadcastPlaceholder": "اكتب رسالة لإرسالها لجميع المحادثات المحددة...",
+    "messageSentTo": "تم إرسال الرسالة إلى {{count}} محادثة",
+    "composeToCount": "رسالة جديدة إلى {{count}} محادثات",
+    "attach": "إرفاق ملف",
+    "attachment": "مرفق"
   }
 }

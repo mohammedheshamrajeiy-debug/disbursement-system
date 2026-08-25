@@ -10,18 +10,21 @@ import {
 import { useAuth } from "./auth.jsx";
 import { api } from "./api.js";
 import { useNotify } from "./components/ui.jsx";
-import Login from "./screens/Login.jsx";
+import { onMessageNew } from "./services/socketService.js";
+import Login from "./components/screens/Login.jsx";
 import { useLanguage } from "./i18n.jsx";
 import i18n from "./i18n.jsx";
-const RequestScreen = lazy(() => import("./screens/RequestScreen.jsx"));
-const CustomerScreen = lazy(() => import("./screens/CustomerScreen.jsx"));
-const InvoiceScreen = lazy(() => import("./screens/InvoiceScreen.jsx"));
+const RequestScreen = lazy(() => import("./components/screens/RequestScreen.jsx"));
+const CustomerScreen = lazy(() => import("./components/screens/CustomerScreen.jsx"));
+const InvoiceScreen = lazy(() => import("./components/screens/invoice/InvoiceScreen.jsx"));
 const DevicesScreen = lazy(
-  () => import("./screens/DeviceScreen Folder/DevicesScreen .jsx"),
+  () => import("./components/screens/device/DevicesScreen.jsx"),
 );
-const ActivationScreen = lazy(() => import("./screens/ActivationScreen.jsx"));
-const InventoryScreen = lazy(() => import("./screens/InventoryScreen.jsx"));
-const LogScreen = lazy(() => import("./screens/LogScreen.jsx"));
+const ActivationScreen = lazy(
+  () => import("./components/screens/activation/ActivationScreen.jsx"),
+);
+const InventoryScreen = lazy(() => import("./components/screens/InventoryScreen.jsx"));
+const LogScreen = lazy(() => import("./components/screens/LogScreen.jsx"));
 
 const DEFAULT_NAV = {
   user: null,
@@ -213,9 +216,9 @@ function useDefectNotifications(user, ready) {
 
 // Notifies the *next* tab in the request pipeline whenever the previous tab
 // finishes its part of a request:
-//   طلب صرف / طلب عميل  --(created)-->        الفاتورة
-//   الفاتورة             --(invoiced)-->       الأجهزة
-//   الأجهزة              --(dispatched)-->     التحميل
+//   طلب صرف / طلب عميل  --(created)--> الفاتورة
+//   الفاتورة             --(invoiced)--> الأجهزة
+//   الأجهزة              --(dispatched)--> التحميل
 //   التحميل              --(fully activated)-> back to whichever tab (طلب
 //                                               صرف or طلب عميل) created it
 // Each row below is one such handoff: which timestamp on the request marks
@@ -358,6 +361,34 @@ function useStageNotifications(user, ready) {
   return { announce, requests };
 }
 
+// The chat system calls the request tab "disbursement", the nav uses
+// "request" — map nav keys to their chat-system tab id(s).
+const CHAT_TAB_ALIASES = { request: ["disbursement"] };
+
+function useChatNotifications(user, active) {
+  const notify = useNotify();
+  const notifiedIds = useRef(new Set());
+
+  useEffect(() => {
+    if (!user) return;
+    return onMessageNew((message) => {
+      if (!message || notifiedIds.current.has(message.id)) return;
+      const myIds = [active, ...(CHAT_TAB_ALIASES[active] || [])];
+      const isMine = myIds.includes(message.fromTab);
+      const targetsMe = !message.toTab || myIds.includes(message.toTab);
+      if (isMine || !targetsMe) return;
+      notifiedIds.current.add(message.id);
+      notify(
+        `${i18n.t(`tab_${message.fromTab}`, message.fromTab)} — ${i18n.t(
+          "messageWindow.newMessage"
+        )}`,
+        "info"
+      );
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.username, active]);
+}
+
 export default function App() {
   const { user, loading } = useAuth();
   const { t } = useLanguage();
@@ -369,6 +400,7 @@ export default function App() {
 
   const allowed = user && user.tabs && user.tabs.length ? user.tabs : TAB_KEYS;
   const active = allowed.includes(tab) ? tab : allowed[0];
+  useChatNotifications(user, active);
 
   // Whenever the active tab is (or becomes) one of the notify-relevant
   // tabs, tell the user about any return(s)/defect(s) they haven't seen

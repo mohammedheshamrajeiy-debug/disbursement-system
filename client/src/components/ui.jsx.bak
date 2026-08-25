@@ -70,20 +70,7 @@ export function Table({
   );
 }
 
-
 export function Modal({ title, children, onClose, footer, wide }) {
-  useEffect(() => {
-    const handleEscape = (e) => {
-      if (e.key === "Escape") {
-        onClose();
-      }
-    };
-    window.addEventListener("keydown", handleEscape);
-    return () => {
-      window.removeEventListener("keydown", handleEscape);
-    };
-  }, [onClose]);
-
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div

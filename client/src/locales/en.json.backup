@@ -6,7 +6,6 @@
   "bootLoading": "Loading system...",
   "langToggle": "العربية",
   "tab_request": "Disbursement Request",
-  "tab_disbursement": "Disbursement Request",
   "tab_customer": "Customer Request",
   "tab_invoice": "Invoice",
   "tab_devices": "Devices",
@@ -55,8 +54,7 @@
     "no": "No",
     "viewAll": "View all",
     "selectName": "Select name",
-    "typeToSearch": "Type a name to search, or leave empty to show all",
-    "back": "Back"
+    "typeToSearch": "Type a name to search, or leave empty to show all"
   },
   "status": {
     "pending": "Pending",
@@ -184,8 +182,8 @@
     "noRequestSelected": "No request selected",
     "view_one": "View",
     "view_other": "View ({{count}})",
-    "returnedBanner_one": " This customer returned {{count}} device from this request",
-    "returnedBanner_other": " This customer returned {{count}} devices from this request",
+    "returnedBanner_one": "⚠️ This customer returned {{count}} device from this request",
+    "returnedBanner_other": "⚠️ This customer returned {{count}} devices from this request",
     "returnDeviceCount_one": "{{count}} device",
     "returnDeviceCount_other": "{{count}} devices",
     "carton": " — Carton {{no}}",
@@ -242,7 +240,7 @@
     "chooseFromStorage": "Choose from storage",
     "chip": "Chip",
     "clearList": "Clear list",
-    "codeAlreadyEntered": " \"{{value}}\" was already entered — it cannot be repeated",
+    "codeAlreadyEntered": "⚠️ \"{{value}}\" was already entered — it cannot be repeated",
     "createdFromRequests": " (from request: {{requests}})",
     "created_one": "Manufacturing defect {{reqId}} created — {{count}} device to {{storage}}",
     "created_other": "Manufacturing defect {{reqId}} created — {{count}} devices to {{storage}}",
@@ -255,9 +253,9 @@
     "defectRequestsLog": "Manufacturing defect requests log",
     "defectType": "Defect type",
     "defectTypePlaceholder": "Type the defect type",
-    "deviceAlreadyAdded": " This device is already added",
+    "deviceAlreadyAdded": "⚠️ This device is already added",
     "deviceCount": "Device count",
-    "deviceNotFoundCustomerStore": " This device was not found in the customer service storage",
+    "deviceNotFoundCustomerStore": "⚠️ This device was not found in the customer service storage",
     "deviceRemoved": "Removed {{id}}",
     "emptyHint": "Type the beneficiary name then scan or type the device number to add it",
     "failedToComplete": "Could not complete registering the manufacturing defect",
@@ -315,13 +313,13 @@
     "chip": "Chip",
     "choose": "Choose",
     "clearList": "Clear list",
-    "codeAlreadyEntered": " \"{{value}}\" was already entered — it cannot be repeated",
+    "codeAlreadyEntered": "⚠️ \"{{value}}\" was already entered — it cannot be repeated",
     "createdFromRequests": " (from request: {{requests}})",
     "created_one": "Return {{reqId}} created — {{count}} device to {{storage}}",
     "created_other": "Return {{reqId}} created — {{count}} devices to {{storage}}",
     "customer": "Customer",
     "date": "Date",
-    "deviceAlreadyAdded": " This device is already added",
+    "deviceAlreadyAdded": "⚠️ This device is already added",
     "deviceCount": "Device count",
     "deviceRemoved": "Removed {{id}}",
     "emptyHint": "Type the beneficiary name then scan or type the device number to add it",
@@ -385,8 +383,7 @@
     "shipmentSaved": "Shipment data saved",
     "handDeliverySaved": "Hand delivery data saved",
     "panelTitle": "Requests awaiting devices",
-    "shipImagesTitle": "Shipment / delivery images",
-    "agent": "Device agent"
+    "shipImagesTitle": "Shipment / delivery images"
   },
   "devicesSection": {
     "savedRequests": "Saved requests"
@@ -497,8 +494,7 @@
     "requestsAwaitingInvoice": "Requests awaiting invoice",
     "selectRequestFirst": "Select a request first",
     "enterInvoiceNumberOrImage": "Enter the invoice number or attach an invoice image",
-    "invoiceSaved": "Invoice saved",
-    "agent": "Invoice agent"
+    "invoiceSaved": "Invoice saved"
   },
   "invoiceRequest": {
     "title": "Request data",
@@ -550,8 +546,7 @@
     "loaded": "Loaded",
     "notLoaded": "Not loaded",
     "activationDate": "Load Date",
-    "pendingActivationRequests": "Requests Awaiting Activation",
-    "agent": "Activation agent"
+    "pendingActivationRequests": "Requests Awaiting Activation"
   },
   "activationSection": {
     "number": "Number",
@@ -617,8 +612,7 @@
     "importing": "Importing...",
     "importExcel": "Import Excel",
     "exportExcel": "Export Excel",
-    "noDevicesInStorage": "No devices in this storage",
-    "agent": "Inventory agent"
+    "noDevicesInStorage": "No devices in this storage"
   },
   "logScreen": {
     "operationsLog": "Operations Log",
@@ -633,8 +627,7 @@
     "totalOperations": "Total operations:",
     "exportExcel": "Export Excel",
     "clearLog": "Clear Log",
-    "noOperations": "No operations recorded",
-    "agent": "Log agent"
+    "noOperations": "No operations recorded"
   },
   "customerScreen": {
     "customer": "Customer"
@@ -660,7 +653,7 @@
   },
   "requestScreen": {
     "agent": "Agent"
-  },
+  }
   "messageWindow": {
     "openChat": "Open Chat",
     "chat": "Chat",
@@ -668,26 +661,15 @@
     "title": "Chat",
     "typing": "Typing...",
     "sending": "Sending...",
-    "send": "Send",
     "newMessage": "New message received",
     "messageSent": "Message sent successfully",
     "sendError": "Failed to send message",
     "markedAsRead": "Message marked as read",
     "you": "You",
     "unread": "Unread",
-    "chattingWith": "Chatting with",
-    "messageInput": "Message input",
     "fromUser": "From user",
     "noMessages": "No messages yet",
     "startConversation": "Start a conversation by sending a message",
-    "messagePlaceholder": "Type a message...",
-    "selectRecipients": "Select recipients",
-    "selectAll": "Select all",
-    "composeTo": "New message",
-    "broadcastPlaceholder": "Type a message to send to all selected chats...",
-    "messageSentTo": "Message sent to {{count}} chat(s)",
-    "composeToCount": "New message to {{count}} chats",
-    "attach": "Attach file",
-    "attachment": "Attachment"
-  }
+    "messagePlaceholder": "Type a message..."
+  },
 }

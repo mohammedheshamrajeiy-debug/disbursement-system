@@ -1,3 +1,4 @@
+import http from 'http';
 import express from 'express';
 import cors from 'cors';
 import multer from 'multer';
@@ -14,6 +15,8 @@ import { financialRoutes } from './routes/financial.js';
 import { logRoutes } from './routes/log.js';
 import { returnRoutes } from './routes/returns.js';
 import { defectRoutes } from './routes/defects.js';
+import { messageRoutes } from './routes/messages.js';
+import { initRealtime } from './realtime.js';
 import { middleware as i18nMiddleware } from './i18n.js';
 
 const PORT = process.env.PORT || 4000;
@@ -56,6 +59,7 @@ app.use('/api/financial', authRequired, financialRoutes(dm));
 app.use('/api/log', authRequired, logRoutes(dm));
 app.use('/api/returns', authRequired, returnRoutes(dm));
 app.use('/api/defects', authRequired, defectRoutes(dm));
+app.use('/api/messages', authRequired, messageRoutes());
 
 if (process.env.NODE_ENV === 'production') {
   const dist = path.join(SERVER_DIR, '..', 'client', 'dist');
@@ -70,7 +74,10 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: req.t(err.message || 'errors.internal') });
 });
 
-app.listen(PORT, () => {
+const server = http.createServer(app);
+initRealtime(server);
+
+server.listen(PORT, () => {
   console.log(`[server] نظام إدارة الصرف - الخادم يعمل على http://localhost:${PORT}`);
   console.log(`[server] مسار البيانات: ${dm.dataDir}`);
 });

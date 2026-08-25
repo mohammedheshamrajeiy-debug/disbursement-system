@@ -13,6 +13,7 @@
     "i18next": "^26.3.6",
     "i18next-http-middleware": "^3.9.8",
     "multer": "^2.0.2",
+    "socket.io": "^4.8.3",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.19.3/xlsx-0.19.3.tgz"
   }
 }
