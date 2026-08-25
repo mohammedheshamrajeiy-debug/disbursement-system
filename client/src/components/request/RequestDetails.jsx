@@ -79,29 +79,39 @@ export default function RequestDetails({ request, sections, hideFinancial = fals
     return out;
   }
 
+  // One returns entry, composed in the active UI language.
+  function returnsLine(r) {
+    return (
+      <>
+        {r.return_req_id ? <b>{r.return_req_id}</b> : null}
+        {r.return_req_id ? " — " : ""}
+        {t("requestDetails.returnDeviceCount", {
+          count: (r.device_ids || []).length,
+        })}
+        {r.carton_no
+          ? t("requestDetails.carton", { no: r.carton_no })
+          : ""}{" "}
+        — {fmtTime(r.date)}
+        {r.notes ? ` (${r.notes})` : ""}
+      </>
+    );
+  }
+
   return (
     <div className="details-panel">
       {returnedCount > 0 && (
         <div className="returns-banner">
-          <span>
+          <span className="returns-banner-headline">
             {t("requestDetails.returnedBanner", { count: returnedCount })}
           </span>
           <ul>
             {returns.map((r, i) => (
               <li key={i}>
-                {r.return_req_id ? <b>{r.return_req_id}</b> : null}
-                {r.return_req_id ? " — " : ""}
-                {t("requestDetails.returnDeviceCount", {
-                  count: (r.device_ids || []).length,
-                })}
-                {r.carton_no
-                  ? t("requestDetails.carton", { no: r.carton_no })
-                  : ""}{" "}
-                — {fmtTime(r.date)}
-                {r.notes ? ` (${r.notes})` : ""}
+                {returnsLine(r)}
                 {(r.device_ids || []).length ? (
                   <div className="returns-device-ids">
-                    IDs: {(r.device_ids || []).join("ØŒ ")}
+                    {t("requestDetails.deviceIds")}{" "}
+                    {(r.device_ids || []).join(", ")}
                   </div>
                 ) : null}
               </li>

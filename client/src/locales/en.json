@@ -23,7 +23,8 @@
     "hintTitle": "Default accounts:",
     "hintAdmin": "System admin:",
     "hintStaff": "Staff:",
-    "hintPasswordLabel": "password"
+    "hintPasswordLabel": "password",
+    "thesis": "Managing resources, tracking goods, and ensuring transparent disbursement processes."
   },
   "common": {
     "loading": "Loading...",
@@ -55,6 +56,9 @@
     "no": "No",
     "viewAll": "View all",
     "selectName": "Select name",
+    "selectId": "Select ID",
+    "selectNameOrId": "Select name or ID",
+    "noMatchesFound": "No matches found",
     "typeToSearch": "Type a name to search, or leave empty to show all",
     "back": "Back"
   },
@@ -186,6 +190,7 @@
     "view_other": "View ({{count}})",
     "returnedBanner_one": " This customer returned {{count}} device from this request",
     "returnedBanner_other": " This customer returned {{count}} devices from this request",
+    "deviceIds": "IDs:",
     "returnDeviceCount_one": "{{count}} device",
     "returnDeviceCount_other": "{{count}} devices",
     "carton": " — Carton {{no}}",
@@ -431,6 +436,7 @@
   "summarySection": {
     "title": "Request information",
     "requestNumber": "Request number",
+    "requestNumberPlaceholder": "D000001 or C00001",
     "request": "Request",
     "name": "Name",
     "status": "Status",
@@ -517,6 +523,8 @@
     "nameLabel": "Name:",
     "statusLabel": "Status:",
     "invoiceNumber": "Invoice number",
+    "invoiceNumberPlaceholder": "Enter invoice number",
+    "saleOrderPlaceholder": "Enter sales order",
     "invoiceDate": "Invoice date",
     "datePlaceholder": "day/month/year",
     "saleOrder": "Sales order",
@@ -557,6 +565,9 @@
     "number": "Number",
     "date": "Date",
     "notes": "Notes",
+    "requestNumberPlaceholder": "D000001 or C00001",
+    "deviceNumberPlaceholder": "Scan or type the device number",
+    "notesPlaceholder": "Activation notes",
     "savedRequests": "Saved Requests",
     "returns": "Returns",
     "defect": "Manufacturing Defect",

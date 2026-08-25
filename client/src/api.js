@@ -59,5 +59,6 @@ export async function uploadImages(files) {
 
 export function downloadUrl(path) {
   const token = getToken();
-  return token ? `/api${path}?token=${encodeURIComponent(token)}` : `/api${path}`;
+  const sep = path.includes('?') ? '&' : '?';
+  return token ? `/api${path}${sep}token=${encodeURIComponent(token)}` : `/api${path}`;
 }

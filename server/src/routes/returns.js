@@ -91,7 +91,14 @@ export function returnRoutes(dm) {
       const item = {};
       for (const col of INVENTORY_COLUMNS) item[col] = (raw && raw[col]) || '';
       item.ID = id;
-      if (!item.DecoderSerialNo) item.DecoderSerialNo = id;
+      // البطاقة is the canonical home for a returned code: الريسيفر never
+      // carries the returned device in مخزن المرتجع. A decoder serial with
+      // no card on record moves into البطاقة; anything else gets the
+      // scanned code itself.
+      if (!item.CardSerialNo) {
+        item.CardSerialNo = item.DecoderSerialNo || id;
+      }
+      item.DecoderSerialNo = '';
       clean.push({ ...item, req_id: (raw && raw.req_id) || '' });
     }
     if (!clean.length) {

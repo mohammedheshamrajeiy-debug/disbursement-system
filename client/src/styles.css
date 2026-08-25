@@ -936,20 +936,27 @@ body {
 
 /* returns banner shown on request details wherever it's opened
    (invoice / devices / activation) so staff can't miss that a
-   customer sent devices back */
+   customer sent devices back — neutral background, with a bold
+   headline that stands out from the regular-weight details.
+   Text follows the active UI language (Arabic or English). */
 .returns-banner {
-  background: #fdecea;
-  border: 1px solid #f5b7b1;
-  color: #922b21;
+  background: var(--bg, #f8fafc);
+  border: 1px solid var(--border);
+  color: var(--text);
   border-radius: 8px;
   padding: 10px 14px;
   margin-bottom: 14px;
-  font-weight: 600;
+}
+.returns-banner .returns-banner-headline {
+  display: block;
+  font-weight: var(--font-weight-bold, 700);
+  color: var(--text);
 }
 .returns-banner ul {
   margin: 6px 0 0;
   padding-inline-start: 18px;
   font-weight: 400;
+  color: var(--muted);
   font-size: var(--font-size-base);
 }
 
