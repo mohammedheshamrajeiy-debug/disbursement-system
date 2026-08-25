@@ -25,7 +25,7 @@ A full-stack web application (React + Express) for managing disbursement request
 ## Project Structure
 
 ```
-JS_version2.1/
+disbursement-system/
 ├── client/          # React frontend (Vite)
 │   └── src/
 │       ├── components/
